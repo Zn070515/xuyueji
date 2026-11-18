@@ -101,6 +101,36 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     });
   }
 
+  // Cookie-authenticated writes need a CSRF defence beyond SameSite. Requests
+  // without an Origin header are non-browser clients/webhooks; browsers send
+  // it, and a cross-site Origin must match the configured/ same-host set.
+  app.addHook("onRequest", async (request, reply) => {
+    if (["GET", "HEAD", "OPTIONS"].includes(request.method)) {
+      return;
+    }
+    const origin = request.headers.origin;
+    if (!origin) {
+      return;
+    }
+    let allowed = config.corsOrigins.includes(origin);
+    if (!allowed) {
+      try {
+        allowed = new URL(origin).host === request.headers.host;
+      } catch {
+        allowed = false;
+      }
+    }
+    if (!allowed) {
+      return reply.code(403).send({
+        error: {
+          code: "ORIGIN_FORBIDDEN",
+          message: "Cross-origin mutation is not allowed.",
+          requestId: request.id,
+        },
+      });
+    }
+  });
+
   app.setNotFoundHandler((request, reply) => {
     reply.code(404).send({
       error: {

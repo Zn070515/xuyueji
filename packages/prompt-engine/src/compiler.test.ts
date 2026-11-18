@@ -132,6 +132,23 @@ describe("prompt budget", () => {
     ).toThrow(PromptBudgetExceededError);
   });
 
+  it("does not confuse identical sourceIds across different component kinds", () => {
+    const plan = compilePrompt({
+      sources: sources({
+        history: [{ role: "user", content: "H" }],
+        worldInfo: [{ id: "history:0", content: "WWWWWWWWWW" }],
+      }),
+      budget: { contextWindowTokens: 70, maxOutputTokens: 50, safetyReserveTokens: 10 },
+      estimateTokens: lengthTokens,
+    });
+
+    const history = plan.components.find((component) => component.kind === "history");
+    const world = plan.components.find((component) => component.kind === "world_info");
+    expect(history?.included).toBe(true);
+    expect(world?.included).toBe(false);
+    expect(plan.messages.map((message) => message.content)).toEqual(["H", "U"]);
+  });
+
   it("marks optional components excluded by the budget", () => {
     const plan = compilePrompt({
       sources: sources({ examples: ["a".repeat(50)] }),

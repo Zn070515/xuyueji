@@ -114,6 +114,14 @@ export function heuristicTokenEstimate(text: string): number {
   return Math.ceil(text.length / 3);
 }
 
+function componentKey(candidate: { kind: PromptComponentKind; sourceId: string }): string {
+  return `${candidate.kind}:${candidate.sourceId}`;
+}
+
+function historyKey(index: number): string {
+  return componentKey({ kind: "history", sourceId: `history:${index}` });
+}
+
 function fnv1a(value: string): string {
   let hash = 0x811c9dc5;
   for (let index = 0; index < value.length; index += 1) {
@@ -308,7 +316,7 @@ export function compilePrompt(options: PromptCompileOptions): PromptPlan {
 
   const included = new Set<string>();
   for (const candidate of mandatory) {
-    included.add(candidate.sourceId);
+    included.add(componentKey(candidate));
   }
   let used = mandatoryTokens;
   const warnings: string[] = [];
@@ -325,7 +333,7 @@ export function compilePrompt(options: PromptCompileOptions): PromptPlan {
 
   for (const candidate of optional) {
     if (used + candidate.estimate <= available) {
-      included.add(candidate.sourceId);
+      included.add(componentKey(candidate));
       used += candidate.estimate;
     } else {
       excludedOptional += 1;
@@ -338,7 +346,9 @@ export function compilePrompt(options: PromptCompileOptions): PromptPlan {
     );
   }
   const historyCandidates = candidates.filter((candidate) => candidate.kind === "history");
-  const includedHistory = historyCandidates.filter((candidate) => included.has(candidate.sourceId));
+  const includedHistory = historyCandidates.filter((candidate) =>
+    included.has(componentKey(candidate)),
+  );
   if (includedHistory.length < historyCandidates.length) {
     warnings.push(
       `History truncated: kept ${includedHistory.length} of ${historyCandidates.length} messages.`,
@@ -348,18 +358,19 @@ export function compilePrompt(options: PromptCompileOptions): PromptPlan {
   const ordered = [...candidates].sort(
     (left, right) => left.order - right.order || left.sourceId.localeCompare(right.sourceId),
   );
-  const components: PromptComponent[] = ordered.map((candidate) => ({
-    kind: candidate.kind,
-    sourceId: candidate.sourceId,
-    content: candidate.content,
-    estimatedTokens: candidate.estimate,
-    mandatory: candidate.mandatory,
-    priority: candidate.priority,
-    included: included.has(candidate.sourceId),
-    ...(included.has(candidate.sourceId)
-      ? { reason: candidate.mandatory ? "mandatory" : "budget" }
-      : { reason: "budget" }),
-  }));
+  const components: PromptComponent[] = ordered.map((candidate) => {
+    const isIncluded = included.has(componentKey(candidate));
+    return {
+      kind: candidate.kind,
+      sourceId: candidate.sourceId,
+      content: candidate.content,
+      estimatedTokens: candidate.estimate,
+      mandatory: candidate.mandatory,
+      priority: candidate.priority,
+      included: isIncluded,
+      reason: isIncluded ? (candidate.mandatory ? "mandatory" : "budget") : "budget",
+    };
+  });
 
   const systemPrompt = components
     .filter(
@@ -370,9 +381,7 @@ export function compilePrompt(options: PromptCompileOptions): PromptPlan {
     .join("\n\n");
 
   const messages: PromptHistoryMessage[] = [
-    ...(options.sources.history ?? []).filter((_message, index) =>
-      included.has(`history:${index}`),
-    ),
+    ...(options.sources.history ?? []).filter((_message, index) => included.has(historyKey(index))),
     { role: "user", content: options.sources.userInput },
   ];
 
