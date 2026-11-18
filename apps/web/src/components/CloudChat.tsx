@@ -7,6 +7,7 @@ import type {
   PersonaSummaryDto,
   PresetSummaryDto,
   PromptPreviewResponse,
+  RegexRuleDto,
 } from "@xuyueji/contracts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
@@ -24,6 +25,7 @@ import { listLorebooks } from "../lib/lorebooks-api.js";
 import { listPersonas } from "../lib/personas-api.js";
 import { listPresets } from "../lib/presets-api.js";
 import { previewPrompt } from "../lib/prompt-api.js";
+import { listRegexRules } from "../lib/regex-rules-api.js";
 import { DemoDataNote, GateBadge, PageHeader } from "./Primitives.js";
 
 function formatTime(value: string): string {
@@ -108,6 +110,8 @@ export function CloudChat() {
   const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(null);
   const [presets, setPresets] = useState<PresetSummaryDto[]>([]);
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
+  const [regexRules, setRegexRules] = useState<RegexRuleDto[]>([]);
+  const [selectedRegexRuleIds, setSelectedRegexRuleIds] = useState<string[]>([]);
   const [promptPreview, setPromptPreview] = useState<PromptPreviewResponse | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -220,6 +224,15 @@ export function CloudChat() {
       })
       .catch(() => {
         // Presets are optional for the preview.
+      });
+    listRegexRules()
+      .then((result) => {
+        if (active) {
+          setRegexRules(result.rules);
+        }
+      })
+      .catch(() => {
+        // Regex rules are optional for the preview.
       });
     return () => {
       active = false;
@@ -367,6 +380,7 @@ export function CloudChat() {
         ...(selectedLorebookIds.length > 0 ? { lorebookIds: selectedLorebookIds } : {}),
         ...(selectedPersonaId ? { personaId: selectedPersonaId } : {}),
         ...(selectedPresetId ? { presetId: selectedPresetId } : {}),
+        ...(selectedRegexRuleIds.length > 0 ? { regexRuleIds: selectedRegexRuleIds } : {}),
         maxOutputTokens: 800,
         contextWindowTokens: 8192,
         seed: 1,
@@ -686,6 +700,48 @@ export function CloudChat() {
                   </fieldset>
                 )}
 
+                {regexRules.length === 0 ? (
+                  <p className="mt-2 text-[10px] leading-5 text-mist-500">
+                    没有正则规则。
+                    <Link className="ml-1 text-moon-300 underline underline-offset-4" to="/presets">
+                      创建
+                    </Link>
+                  </p>
+                ) : (
+                  <fieldset className="mt-3">
+                    <legend className="text-[11px] text-mist-400">正则规则</legend>
+                    <div className="mt-1 max-h-28 space-y-1 overflow-auto">
+                      {regexRules.map((rule) => (
+                        <label
+                          key={rule.id}
+                          className="flex items-center gap-2 text-[11px] text-mist-300"
+                        >
+                          <input
+                            id={`prompt-regex-${rule.id}`}
+                            type="checkbox"
+                            checked={selectedRegexRuleIds.includes(rule.id)}
+                            onChange={(event) => {
+                              setSelectedRegexRuleIds((current) =>
+                                event.target.checked
+                                  ? [...current, rule.id]
+                                  : current.filter((id) => id !== rule.id),
+                              );
+                              setPromptPreview(null);
+                            }}
+                          />
+                          <span className="truncate">
+                            {rule.title}
+                            <span className="ml-1 text-[10px] text-mist-500">
+                              {rule.stage}
+                              {rule.enabled ? "" : " · 停用"}
+                            </span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                )}
+
                 <button
                   type="button"
                   onClick={() => void handlePreview()}
@@ -715,6 +771,21 @@ export function CloudChat() {
                       {promptPreview.plan.reservedOutputTokens} reserved output
                     </p>
                     <p>世界书命中 {promptPreview.worldInfo.activated.length} 条</p>
+                    <p>
+                      正则生效 {promptPreview.regex.applied.length} 条
+                      {promptPreview.regex.skipped.length > 0
+                        ? ` · 跳过 ${promptPreview.regex.skipped.length} 条`
+                        : ""}
+                      {promptPreview.regex.deferred.length > 0
+                        ? ` · 延后 ${promptPreview.regex.deferred.length} 条`
+                        : ""}
+                    </p>
+                    {promptPreview.regex.transformedInput !==
+                    (pendingSend?.content ?? (draft.trim() || "（预览）请继续故事。")) ? (
+                      <p className="text-[10px] text-moon-300">
+                        用户输入已被 user_input 阶段规则改写
+                      </p>
+                    ) : null}
                     {promptPreview.plan.warnings.length > 0 ? (
                       <ul className="list-disc pl-3 text-[10px] text-moon-300">
                         {promptPreview.plan.warnings.map((warning) => (

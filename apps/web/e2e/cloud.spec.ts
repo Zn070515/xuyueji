@@ -187,6 +187,52 @@ test("preset sections are selectable in the prompt preview", async ({ page }, te
   await expect(page.getByText("预设内容：用简洁的句子。")).toBeVisible();
 });
 
+test("regex rule rewrites the prompt input", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "正则流程只需在桌面项目跑一次");
+
+  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const email = `regex-${suffix}@example.com`;
+  const password = "correct horse battery staple";
+
+  await page.goto("/register");
+  await page.getByLabel("显示名称").fill("正则用户");
+  await page.getByLabel("邮箱").fill(email);
+  await page.getByLabel(/密码（至少 12 位）/).fill(password);
+  await page.getByLabel(/我确认已年满/).check();
+  await page.getByRole("button", { name: "创建账号" }).click();
+  await expect(page).toHaveURL(/\/settings$/);
+
+  await page.goto("/presets");
+  await expect(page.getByRole("heading", { name: "受控正则规则" })).toBeVisible();
+  await page.getByRole("button", { name: "新建正则规则" }).click();
+  await page.locator("#regex-title").fill("E2E 正则");
+  await page.locator("#regex-pattern").fill("你好");
+  await page.locator("#regex-sample").fill("你好，书店。");
+  await page.getByRole("button", { name: "试运行" }).click();
+  await expect(page.getByText(/命中 1 处/)).toBeVisible();
+  await page.getByRole("button", { name: "保存正则规则" }).click();
+  await expect(page.getByText("正则规则已创建。")).toBeVisible();
+
+  await page.goto("/characters");
+  await page.locator("#character-name").fill("正则测试角色");
+  await page.locator("#character-description").fill("用于正则预览");
+  await page.getByRole("button", { name: "创建并保存到云端" }).click();
+  await expect(page.getByRole("heading", { name: "正则测试角色" })).toBeVisible();
+
+  await page.goto("/chat");
+  await page.getByRole("button", { name: "新建云端会话" }).click();
+  await page.locator("#cloud-chat-input").fill("你好。");
+  await page.getByRole("button", { name: "发送到云端" }).click();
+  await expect(page.getByText("你好。")).toBeVisible();
+
+  await page.locator("#cloud-chat-input").fill("你好。");
+  await page.getByRole("checkbox", { name: /E2E 正则/ }).check();
+  await page.getByRole("button", { name: "生成 Prompt 预览" }).click();
+  await expect(page.getByText(/digest/)).toBeVisible();
+  await expect(page.getByText("正则生效 1 条")).toBeVisible();
+  await expect(page.getByText("用户输入已被 user_input 阶段规则改写")).toBeVisible();
+});
+
 test("register, save a cloud character version and export", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "云端流程只需在桌面项目跑一次");
 

@@ -5,7 +5,8 @@
 
 > **当前状态：M1 云端基础 + M2 起步（演示模式）**。账号会话、角色版本 CAS、云端聊天、
 > 消息图分页、同步、JSON 导出/恢复、Character Card V2/V3 导入导出、世界书 CRUD 与确定性触发、
-> Persona 版本编辑、Preset 段落管理、Prompt 编译器与云端聊天内的 Prompt 预览面板已接入；
+> Persona 版本编辑、Preset 段落管理、受限正则规则（安全子集、分阶段执行、步数上限）、
+> Prompt 编译器与云端聊天内的 Prompt 预览面板已接入；
 > DeepSeek 模型调用、真实支付与公开发布仍未启用。kickoff 文档不是已完成的软件。
 
 ## 文档基线

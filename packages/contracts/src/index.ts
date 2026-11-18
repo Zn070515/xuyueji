@@ -618,6 +618,64 @@ export const updateLorebookEntryRequestSchema = lorebookEntryInputSchema
   .strict();
 export type UpdateLorebookEntryRequest = z.infer<typeof updateLorebookEntryRequestSchema>;
 
+export const regexStageSchema = z.enum([
+  "user_input",
+  "prompt_build",
+  "model_output",
+  "display_only",
+]);
+export type RegexStage = z.infer<typeof regexStageSchema>;
+
+export const regexRuleDtoSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  stage: regexStageSchema,
+  pattern: z.string(),
+  flags: z.string(),
+  replacement: z.string(),
+  sortOrder: z.number().int().nonnegative(),
+  enabled: z.boolean(),
+  revision: z.number().int().positive(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type RegexRuleDto = z.infer<typeof regexRuleDtoSchema>;
+
+export const createRegexRuleRequestSchema = z
+  .object({
+    title: z.string().min(1).max(120),
+    stage: regexStageSchema,
+    pattern: z.string().min(1).max(2_000),
+    flags: z.string().max(10).optional(),
+    replacement: z.string().max(10_000).optional(),
+    sortOrder: z.number().int().nonnegative().optional(),
+    enabled: z.boolean().optional(),
+  })
+  .strict();
+export type CreateRegexRuleRequest = z.infer<typeof createRegexRuleRequestSchema>;
+
+export const updateRegexRuleRequestSchema = createRegexRuleRequestSchema
+  .extend({ expectedRevision: z.number().int().positive() })
+  .strict();
+export type UpdateRegexRuleRequest = z.infer<typeof updateRegexRuleRequestSchema>;
+
+export const regexTestRequestSchema = z
+  .object({
+    pattern: z.string().min(1).max(2_000),
+    flags: z.string().max(10).optional(),
+    replacement: z.string().max(10_000).optional(),
+    sample: z.string().max(100_000),
+  })
+  .strict();
+export type RegexTestRequest = z.infer<typeof regexTestRequestSchema>;
+
+export const regexTestResponseSchema = z.object({
+  output: z.string(),
+  matchCount: z.number().int().nonnegative(),
+  steps: z.number().int().nonnegative(),
+});
+export type RegexTestResponse = z.infer<typeof regexTestResponseSchema>;
+
 export const promptComponentDtoSchema = z.object({
   kind: z.enum([
     "platform_policy",
@@ -666,6 +724,7 @@ export const promptPreviewRequestSchema = z
     lorebookIds: z.array(z.uuid()).max(20).optional(),
     personaId: z.uuid().optional(),
     presetId: z.uuid().optional(),
+    regexRuleIds: z.array(z.uuid()).max(50).optional(),
     persona: z
       .object({
         name: z.string().min(1).max(120),
@@ -694,6 +753,22 @@ export const worldInfoSkipDtoSchema = z.object({
   reason: z.string(),
 });
 
+export const regexApplicationDtoSchema = z.object({
+  ruleId: z.string(),
+  title: z.string(),
+  stage: regexStageSchema,
+  matchCount: z.number().int().nonnegative(),
+  steps: z.number().int().nonnegative(),
+});
+
+export type RegexApplicationDto = z.infer<typeof regexApplicationDtoSchema>;
+
+export const regexSkippedDtoSchema = z.object({
+  ruleId: z.string(),
+  title: z.string(),
+  reason: z.string(),
+});
+
 export const promptPreviewResponseSchema = z.object({
   plan: promptPlanDtoSchema,
   worldInfo: z.object({
@@ -702,6 +777,12 @@ export const promptPreviewResponseSchema = z.object({
     warnings: z.array(z.string()),
     totalEstimatedTokens: z.number().int().nonnegative(),
     totalBytes: z.number().int().nonnegative(),
+  }),
+  regex: z.object({
+    applied: z.array(regexApplicationDtoSchema),
+    skipped: z.array(regexSkippedDtoSchema),
+    deferred: z.array(regexSkippedDtoSchema),
+    transformedInput: z.string(),
   }),
 });
 export type PromptPreviewResponse = z.infer<typeof promptPreviewResponseSchema>;

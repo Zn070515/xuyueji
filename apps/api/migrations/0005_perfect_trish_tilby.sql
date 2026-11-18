@@ -1,0 +1,1 @@
+ALTER TABLE "regex_rules" ADD COLUMN "replacement" text DEFAULT '' NOT NULL;

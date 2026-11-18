@@ -36,17 +36,16 @@ export interface WorldInfoScope {
   readonly conversationBookIds: readonly string[];
 }
 
+export * from "./safe-regex.js";
 export * from "./world-info.js";
 
 export const TAVERN_CORE_STATUS = {
   gate: "M2",
-  implemented: ["domain-types"],
+  implemented: ["domain-types", "world-info-triggering", "bounded-regex-engine"],
   planned: [
-    "world-info-triggering",
     "recursive-activation-limits",
     "preset-ordering",
     "macro-whitelist-interpreter",
-    "bounded-regex-pipeline",
     "quick-reply-registry",
   ],
 } as const;

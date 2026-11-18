@@ -6,6 +6,7 @@ import rateLimit from "@fastify/rate-limit";
 import { CharacterCardParseError } from "@xuyueji/compat";
 import { DomainError, type DomainErrorCode } from "@xuyueji/domain";
 import { PromptBudgetExceededError } from "@xuyueji/prompt-engine";
+import { SafeRegexError } from "@xuyueji/tavern-core";
 import Fastify, { type FastifyInstance } from "fastify";
 import { ZodError } from "zod";
 
@@ -26,6 +27,7 @@ import { mutationRoutes } from "./routes/mutations.js";
 import { personaRoutes } from "./routes/personas.js";
 import { presetRoutes } from "./routes/presets.js";
 import { promptRoutes } from "./routes/prompt.js";
+import { regexRuleRoutes } from "./routes/regex-rules.js";
 import { syncRoutes } from "./routes/sync.js";
 
 const STATUS_BY_CODE: Readonly<Record<DomainErrorCode, number>> = {
@@ -168,6 +170,18 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
       });
     }
 
+    if (error instanceof SafeRegexError) {
+      app.log.warn({ reqId: request.id, code: error.code }, "regex rule rejected");
+      return reply.code(400).send({
+        error: {
+          code: "REGEX_INVALID",
+          message: error.message,
+          requestId: request.id,
+          details: { reason: error.code },
+        },
+      });
+    }
+
     if (error instanceof PromptBudgetExceededError) {
       return reply.code(422).send({
         error: {
@@ -250,6 +264,9 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     });
     await app.register(presetRoutes({ db: database.db, auth }), {
       prefix: "/api/presets",
+    });
+    await app.register(regexRuleRoutes({ db: database.db, auth }), {
+      prefix: "/api/regex-rules",
     });
     await app.register(conversationRoutes({ db: database.db, auth }), {
       prefix: "/api/conversations",
