@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 
+import { useAuth } from "../auth/AuthProvider.js";
+import { CloudChat } from "../components/CloudChat.js";
 import { DemoDataNote, GateBadge, PageHeader } from "../components/Primitives.js";
 import {
   DEMO_CHARACTER,
@@ -170,6 +173,14 @@ function Inspector({ localState }: { localState: "loading" | "saved" | "unavaila
 }
 
 export function ChatPage() {
+  const auth = useAuth();
+  if (auth.state.status === "authenticated") {
+    return <CloudChat />;
+  }
+  return <LocalChatPage showLoginHint={auth.state.status === "anonymous"} />;
+}
+
+function LocalChatPage({ showLoginHint }: { showLoginHint: boolean }) {
   const [messages, setMessages] = useState<DemoMessage[]>(() => [...INITIAL_MESSAGES]);
   const [replyIndex, setReplyIndex] = useState(0);
   const [isReplying, setIsReplying] = useState(false);
@@ -235,6 +246,18 @@ export function ChatPage() {
         description="这是一个真实可交互的页面骨架：输入、发送与草稿落盘都在本机完成。它不会调用 DeepSeek，也不会保存到云端；右侧的 Prompt、世界书与记忆面板是明确的界面示意。"
         aside={<GateBadge gate="M1 页面 · M3 接入模型" tone="ready" />}
       />
+
+      {showLoginHint ? (
+        <div className="px-4 pt-4 sm:px-6">
+          <p className="rounded-xl border border-moon-400/25 bg-moon-400/5 px-3 py-2 text-xs leading-6 text-moon-200">
+            当前未登录，使用本地演示，消息不会离开浏览器。
+            <Link className="ml-1 underline underline-offset-4" to="/login">
+              登录
+            </Link>
+            后可使用写入 PostgreSQL 的云端会话与跨设备继续。
+          </p>
+        </div>
+      ) : null}
 
       <div className="grid gap-5 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <section className="glass-card flex min-h-[620px] flex-col overflow-hidden rounded-3xl">

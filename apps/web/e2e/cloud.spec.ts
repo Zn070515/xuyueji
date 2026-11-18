@@ -1,5 +1,46 @@
 import { expect, test } from "@playwright/test";
 
+test("a cloud message is visible on a second device", async ({ page, browser }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "跨设备流程只需在桌面项目跑一次");
+
+  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const email = `cross-${suffix}@example.com`;
+  const password = "correct horse battery staple";
+  const message = `跨设备消息 ${suffix}`;
+
+  await page.goto("/register");
+  await page.getByLabel("显示名称").fill("跨设备用户");
+  await page.getByLabel("邮箱").fill(email);
+  await page.getByLabel(/密码（至少 12 位）/).fill(password);
+  await page.getByLabel(/我确认已年满/).check();
+  await page.getByRole("button", { name: "创建账号" }).click();
+  await expect(page).toHaveURL(/\/settings$/);
+
+  await page.goto("/chat");
+  await expect(page.getByRole("heading", { name: "云端会话与跨设备存档。" })).toBeVisible();
+  await page.getByRole("button", { name: "新建云端会话" }).click();
+  await page.locator("#cloud-chat-input").fill(message);
+  await page.getByRole("button", { name: "发送到云端" }).click();
+  await expect(page.getByText(message)).toBeVisible();
+  await expect(page.getByText("已写入 PostgreSQL。")).toBeVisible();
+
+  const contextB = await browser.newContext();
+  try {
+    const pageB = await contextB.newPage();
+    await pageB.goto("/login");
+    await pageB.getByLabel("邮箱").fill(email);
+    await pageB.getByLabel("密码", { exact: true }).fill(password);
+    await pageB.getByRole("button", { name: "登录" }).click();
+    await expect(pageB).toHaveURL(/\/settings$/);
+
+    await pageB.goto("/chat");
+    await expect(pageB.getByRole("heading", { name: "云端会话与跨设备存档。" })).toBeVisible();
+    await expect(pageB.getByText(message)).toBeVisible({ timeout: 15_000 });
+  } finally {
+    await contextB.close();
+  }
+});
+
 test("register, save a cloud character version and export", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "云端流程只需在桌面项目跑一次");
 
