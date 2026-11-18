@@ -70,6 +70,34 @@ test("register, save a cloud character version and export", async ({ page }, tes
   await page.getByRole("button", { name: "保存为新版本" }).click();
   await expect(page.getByText("已保存为版本 2。")).toBeVisible();
 
+  const importCard = {
+    spec: "chara_card_v2",
+    spec_version: "2.0",
+    x_unknown_top: "preserve-me",
+    data: {
+      name: "E2E 导入角色",
+      description: "从 V2 JSON 导入",
+      first_mes: "你来了。",
+      alternate_greetings: ["另一个开场白"],
+      creator: "fixture",
+      character_version: "1.0",
+      x_unknown_data: { keep: true },
+    },
+  };
+  await page.setInputFiles("#character-import", {
+    name: "card.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(importCard)),
+  });
+  await expect(page.getByText("角色卡已导入并保存到云端。")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "E2E 导入角色" })).toBeVisible();
+  await expect(page.getByText(/未识别顶层字段\s*1/)).toBeVisible();
+
+  const cardDownloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "导出 V2 JSON" }).click();
+  const cardDownload = await cardDownloadPromise;
+  expect(cardDownload.suggestedFilename()).toMatch(/character-.*-v2\.json$/);
+
   await page.goto("/settings");
   await expect(page.getByRole("heading", { name: /待同步操作/ })).toBeVisible();
   const downloadPromise = page.waitForEvent("download");

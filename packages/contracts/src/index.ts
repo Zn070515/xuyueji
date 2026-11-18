@@ -200,6 +200,40 @@ export const characterVersionResponseSchema = z.object({
 });
 export type CharacterVersionResponse = z.infer<typeof characterVersionResponseSchema>;
 
+export const importCharacterCardRequestSchema = z.discriminatedUnion("kind", [
+  z
+    .object({
+      kind: z.literal("json"),
+      card: z.record(z.string(), z.unknown()),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("png-base64"),
+      base64: z.string().min(1).max(20_000_000),
+    })
+    .strict(),
+]);
+export type ImportCharacterCardRequest = z.infer<typeof importCharacterCardRequestSchema>;
+
+export const characterCardImportReportSchema = z.object({
+  format: sourceFormatSchema,
+  specVersion: z.string(),
+  warnings: z.array(z.string()),
+  unknownTopLevelFields: z.number().int().nonnegative(),
+  unknownDataFields: z.number().int().nonnegative(),
+});
+export type CharacterCardImportReport = z.infer<typeof characterCardImportReportSchema>;
+
+export const characterCardImportResponseSchema = z.object({
+  character: characterDetailSchema,
+  report: characterCardImportReportSchema,
+});
+export type CharacterCardImportResponse = z.infer<typeof characterCardImportResponseSchema>;
+
+export const characterExportFormatSchema = z.enum(["v2", "v3"]);
+export type CharacterExportFormat = z.infer<typeof characterExportFormatSchema>;
+
 export const actorRefSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("user"), id: z.string().min(1).max(100) }).strict(),
   z.object({ kind: z.literal("persona"), id: z.string().min(1).max(100) }).strict(),

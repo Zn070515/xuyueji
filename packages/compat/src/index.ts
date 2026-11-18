@@ -7,6 +7,8 @@
  * unknown extension fields for round-trip export.
  */
 
+export * from "./character-card.js";
+
 export type CompatSourceFormat =
   | "character-card-v2-json"
   | "character-card-v3-json"

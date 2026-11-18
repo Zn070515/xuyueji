@@ -1,11 +1,13 @@
 import type {
+  CharacterCardImportResponse,
   CharacterDetail,
+  CharacterExportFormat,
   CharacterPayloadDto,
   CharacterSummaryDto,
   CharacterVersionResponse,
 } from "@xuyueji/contracts";
 
-import { requestJson } from "./http.js";
+import { request, requestJson } from "./http.js";
 
 export function listCharacters(): Promise<{ characters: CharacterSummaryDto[] }> {
   return requestJson<{ characters: CharacterSummaryDto[] }>("/api/characters");
@@ -37,6 +39,32 @@ export function addCharacterVersion(input: {
       }),
     },
   );
+}
+
+export function importCharacterCardJson(
+  card: Record<string, unknown>,
+): Promise<CharacterCardImportResponse> {
+  return requestJson<CharacterCardImportResponse>("/api/characters/import", {
+    method: "POST",
+    body: JSON.stringify({ kind: "json", card }),
+  });
+}
+
+export function importCharacterCardPng(base64: string): Promise<CharacterCardImportResponse> {
+  return requestJson<CharacterCardImportResponse>("/api/characters/import", {
+    method: "POST",
+    body: JSON.stringify({ kind: "png-base64", base64 }),
+  });
+}
+
+export async function exportCharacterCard(
+  characterId: string,
+  format: CharacterExportFormat,
+): Promise<Blob> {
+  const response = await request(
+    `/api/characters/${encodeURIComponent(characterId)}/export?format=${format}`,
+  );
+  return response.blob();
 }
 
 export async function deleteCharacter(characterId: string): Promise<void> {

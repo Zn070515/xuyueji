@@ -202,6 +202,9 @@ importers:
       '@xuyueji/billing':
         specifier: workspace:*
         version: link:../../packages/billing
+      '@xuyueji/compat':
+        specifier: workspace:*
+        version: link:../../packages/compat
       '@xuyueji/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts

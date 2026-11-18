@@ -1,4 +1,11 @@
-import type { CharacterDetail, CharacterPayloadDto, CharacterSummaryDto } from "@xuyueji/contracts";
+import type {
+  CharacterCardImportReport,
+  CharacterCardImportResponse,
+  CharacterDetail,
+  CharacterExportFormat,
+  CharacterPayloadDto,
+  CharacterSummaryDto,
+} from "@xuyueji/contracts";
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -7,10 +14,23 @@ import { DemoDataNote, Eyebrow, GateBadge, PageHeader } from "../components/Prim
 import {
   addCharacterVersion,
   createCharacter,
+  exportCharacterCard,
   getCharacter,
+  importCharacterCardJson,
+  importCharacterCardPng,
   listCharacters,
 } from "../lib/characters-api.js";
 import { ApiError } from "../lib/http.js";
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunk = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunk));
+  }
+  return btoa(binary);
+}
 
 export function CharactersPage() {
   const { state } = useAuth();
@@ -23,6 +43,9 @@ export function CharactersPage() {
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [saving, setSaving] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState<CharacterExportFormat | null>(null);
+  const [importReport, setImportReport] = useState<CharacterCardImportReport | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -125,6 +148,68 @@ export function CharactersPage() {
     }
   }
 
+  async function handleImportFile(file: File | undefined) {
+    if (!file) {
+      return;
+    }
+    setImporting(true);
+    setError(null);
+    setNotice(null);
+    setImportReport(null);
+    try {
+      const lower = file.name.toLowerCase();
+      let result: CharacterCardImportResponse;
+      if (lower.endsWith(".png") || file.type === "image/png") {
+        result = await importCharacterCardPng(arrayBufferToBase64(await file.arrayBuffer()));
+      } else if (lower.endsWith(".json") || file.type === "application/json" || file.type === "") {
+        const card = JSON.parse(await file.text()) as Record<string, unknown>;
+        result = await importCharacterCardJson(card);
+      } else {
+        throw new Error("只支持 .json 或 .png 角色卡。");
+      }
+
+      selectDetail(result.character);
+      await load();
+      setImportReport(result.report);
+      setNotice("角色卡已导入并保存到云端。");
+    } catch (cause) {
+      setError(
+        cause instanceof SyntaxError
+          ? "角色卡 JSON 格式无效。"
+          : cause instanceof Error
+            ? cause.message
+            : "导入角色卡失败。",
+      );
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  async function handleExport(format: CharacterExportFormat) {
+    if (!selected) {
+      return;
+    }
+    setExporting(format);
+    setError(null);
+    setNotice(null);
+    try {
+      const blob = await exportCharacterCard(selected.character.id, format);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `character-${selected.character.id}-${format}.json`;
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setNotice(`已导出 ${format.toUpperCase()} 角色卡。`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "导出角色卡失败。");
+    } finally {
+      setExporting(null);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-7xl">
       <PageHeader
@@ -205,9 +290,55 @@ export function CharactersPage() {
                 </form>
                 <div className="mt-4">
                   <DemoDataNote>
-                    角色卡 V2/V3 导入、头像与多开场白在 M2 接入；这里是真实云端 CRUD 基础。
+                    直接创建的角色保存为 native 格式；V2/V3 角色卡请使用下方导入。
                   </DemoDataNote>
                 </div>
+              </section>
+
+              <section className="glass-card rounded-3xl p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="font-display text-xl text-paper-50">导入角色卡</h2>
+                  <GateBadge gate="V2 / V3" tone="ready" />
+                </div>
+                <p className="mt-2 text-xs leading-6 text-mist-400">
+                  支持 Character Card V2/V3 JSON，以及内嵌 chara / ccv3 文本块的 PNG。
+                  未识别字段会保留以便回导。
+                </p>
+                <label
+                  htmlFor="character-import"
+                  className="mt-3 inline-flex min-h-10 cursor-pointer items-center rounded-full border border-moon-400/40 px-4 py-2 text-xs text-moon-200 hover:bg-moon-400/10"
+                >
+                  {importing ? "正在导入…" : "选择 .json / .png 文件"}
+                  <input
+                    id="character-import"
+                    type="file"
+                    accept=".json,application/json,.png,image/png"
+                    className="sr-only"
+                    disabled={importing}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      void handleImportFile(file);
+                      event.target.value = "";
+                    }}
+                  />
+                </label>
+
+                {importReport ? (
+                  <div className="mt-3 rounded-xl border hairline bg-night-950/40 px-3 py-2 text-[11px] leading-6 text-mist-300">
+                    <p>
+                      已导入 {importReport.format.toUpperCase()} · spec {importReport.specVersion} ·
+                      未识别顶层字段 {importReport.unknownTopLevelFields} · 未识别 data 字段{" "}
+                      {importReport.unknownDataFields}
+                    </p>
+                    {importReport.warnings.length > 0 ? (
+                      <ul className="mt-1 list-disc space-y-1 pl-4 text-mist-400">
+                        {importReport.warnings.map((warning) => (
+                          <li key={warning}>{warning}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                ) : null}
               </section>
 
               <section className="glass-card rounded-3xl p-5">
@@ -293,6 +424,20 @@ export function CharactersPage() {
                       {saving ? "保存中…" : "保存为新版本"}
                     </button>
                   </form>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(["v2", "v3"] as const).map((format) => (
+                      <button
+                        key={format}
+                        type="button"
+                        onClick={() => void handleExport(format)}
+                        disabled={exporting !== null}
+                        className="inline-flex min-h-10 items-center rounded-full border border-night-900/20 px-4 py-2 text-xs font-medium text-night-900 hover:bg-night-900/5 disabled:opacity-60"
+                      >
+                        {exporting === format ? "导出中…" : `导出 ${format.toUpperCase()} JSON`}
+                      </button>
+                    ))}
+                  </div>
 
                   {notice ? (
                     <p className="mt-4 rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-900">

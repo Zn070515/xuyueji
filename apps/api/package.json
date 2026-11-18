@@ -16,6 +16,7 @@
     "@fastify/helmet": "^13.2.0",
     "@fastify/rate-limit": "^11.2.2",
     "@xuyueji/billing": "workspace:*",
+    "@xuyueji/compat": "workspace:*",
     "@xuyueji/contracts": "workspace:*",
     "@xuyueji/domain": "workspace:*",
     "dotenv": "^18.0.10",

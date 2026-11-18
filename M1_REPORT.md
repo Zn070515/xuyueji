@@ -22,6 +22,8 @@ M1 把 M0 的纯演示接口推进为可用的云端存档基础：
 
 M1 **没有**：personas/lorebooks/presets/regex/memory 的专属 UI 与完整导入、ZIP/附件、实时推送、密码找回/邮箱验证、账号删除、备份恢复、模型调用、真实支付。outbox 已支持在设置页手动投递到 `/api/mutations`；自动后台投递与冲突解决面板仍未完成。
 
+> M2 起步已在同一代码库落地：Character Card V2/V3 JSON/PNG 导入与 V2/V3 JSON 导出、未知字段 round-trip，见 `docs/adr/0007-character-card-compat.md`。
+
 ---
 
 ## DESIGN

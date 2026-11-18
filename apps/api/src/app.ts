@@ -3,6 +3,7 @@ import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
+import { CharacterCardParseError } from "@xuyueji/compat";
 import { DomainError, type DomainErrorCode } from "@xuyueji/domain";
 import Fastify, { type FastifyInstance } from "fastify";
 import { ZodError } from "zod";
@@ -117,6 +118,17 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
           message: "Request body or parameters did not match the API contract.",
           requestId: request.id,
           details: { issues: error.issues },
+        },
+      });
+    }
+
+    if (error instanceof CharacterCardParseError) {
+      app.log.warn({ reqId: request.id }, "character card rejected");
+      return reply.code(400).send({
+        error: {
+          code: "INVALID_CHARACTER_CARD",
+          message: error.message,
+          requestId: request.id,
         },
       });
     }

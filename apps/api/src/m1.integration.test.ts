@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
+import { parseCharacterCard, serializeCharacterCardPng } from "@xuyueji/compat";
 import { eq } from "drizzle-orm";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import type { FastifyInstance } from "fastify";
@@ -192,6 +193,103 @@ describeWithDatabase("M1 auth, cloud storage, message graph and sync", () => {
       .limit(1);
     expect(row?.ownerUserId).toBe(owner.userId);
     expect(row?.activeVersionId).toBe(accepted.json().activeVersionId);
+  });
+
+  it("imports and exports V2/V3 character cards with unknown fields", async () => {
+    const session = await register(app, `cards-${randomUUID()}@example.com`);
+    const card = {
+      spec: "chara_card_v2",
+      spec_version: "2.0",
+      data: {
+        name: "角色卡导入测试",
+        description: "来自 V2 JSON",
+        first_mes: "第一句开场白",
+        alternate_greetings: ["第二句"],
+        tags: ["测试"],
+        creator: "fixture",
+        character_version: "1.0",
+        x_unknown_data: { keep: 1 },
+        character_book: { entries: [] },
+      },
+      x_unknown_top: "keep-me",
+    };
+
+    const imported = await app.inject({
+      method: "POST",
+      url: "/api/characters/import",
+      headers: { cookie: session.cookie },
+      payload: { kind: "json", card },
+    });
+    expect(imported.statusCode, imported.body).toBe(201);
+    const importedBody = imported.json() as {
+      character: { character: { id: string; name: string } };
+      report: {
+        format: string;
+        unknownDataFields: number;
+        unknownTopLevelFields: number;
+      };
+    };
+    expect(importedBody.report.format).toBe("v2");
+    expect(importedBody.report.unknownDataFields).toBeGreaterThanOrEqual(3);
+    expect(importedBody.report.unknownTopLevelFields).toBe(1);
+    expect(importedBody.character.character.name).toBe("角色卡导入测试");
+
+    const characterId = importedBody.character.character.id;
+    const exportedV2 = await app.inject({
+      method: "GET",
+      url: `/api/characters/${characterId}/export?format=v2`,
+      headers: { cookie: session.cookie },
+    });
+    expect(exportedV2.statusCode, exportedV2.body).toBe(200);
+    const v2 = exportedV2.json() as {
+      spec: string;
+      x_unknown_top: string;
+      data: Record<string, unknown>;
+    };
+    expect(v2.spec).toBe("chara_card_v2");
+    expect(v2.x_unknown_top).toBe("keep-me");
+    expect(v2.data.x_unknown_data).toEqual({ keep: 1 });
+    expect(v2.data.creator).toBe("fixture");
+    expect(v2.data.character_book).toEqual({ entries: [] });
+
+    const exportedV3 = await app.inject({
+      method: "GET",
+      url: `/api/characters/${characterId}/export?format=v3`,
+      headers: { cookie: session.cookie },
+    });
+    expect(exportedV3.statusCode, exportedV3.body).toBe(200);
+    expect(exportedV3.json().spec).toBe("chara_card_v3");
+
+    const onePixelPng = Uint8Array.from(
+      Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    );
+    const pngCard = {
+      spec: "chara_card_v2",
+      spec_version: "2.0",
+      data: { name: "PNG 导入测试", description: "PNG 内嵌角色卡" },
+    };
+    const parsed = parseCharacterCard(pngCard);
+    const png = serializeCharacterCardPng(onePixelPng, parsed.payload, "v2");
+    const pngImport = await app.inject({
+      method: "POST",
+      url: "/api/characters/import",
+      headers: { cookie: session.cookie },
+      payload: { kind: "png-base64", base64: Buffer.from(png).toString("base64") },
+    });
+    expect(pngImport.statusCode, pngImport.body).toBe(201);
+    expect(pngImport.json().character.character.name).toBe("PNG 导入测试");
+
+    const invalid = await app.inject({
+      method: "POST",
+      url: "/api/characters/import",
+      headers: { cookie: session.cookie },
+      payload: { kind: "json", card: { spec: "unknown" } },
+    });
+    expect(invalid.statusCode).toBe(400);
+    expect(invalid.json().error.code).toBe("INVALID_CHARACTER_CARD");
   });
 
   it("stores a message graph with swipe candidates, CAS conflicts and tombstones", async () => {
