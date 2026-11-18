@@ -8,8 +8,10 @@ import { promptPreviewRequestSchema } from "@xuyueji/contracts";
 import { compilePrompt, type PromptSection, type PromptSources } from "@xuyueji/prompt-engine";
 import {
   applySafeRegex,
+  MacroError,
   type MemorySelectionResult,
   matchWorldInfo,
+  renderMacros,
   SafeRegexError,
   selectMemories,
   type WorldInfoEntry,
@@ -160,8 +162,6 @@ export function promptRoutes(options: {
         return current;
       };
 
-      const userInput = applyStage(body.userInput, "user_input");
-
       const [character, page] = await Promise.all([
         getCharacter(db, session.userId, body.characterId),
         listMessagePath(db, {
@@ -185,6 +185,56 @@ export function promptRoutes(options: {
           },
         });
       }
+
+      let persona = body.persona;
+      if (body.personaId) {
+        const personaDetail = await getPersona(db, session.userId, body.personaId);
+        const activePersona = personaDetail.activeVersion;
+        persona = activePersona
+          ? {
+              name: activePersona.payload.displayName,
+              description: activePersona.payload.description,
+            }
+          : undefined;
+      }
+
+      const activePayload = active.payloadJsonb as Record<string, unknown>;
+      const characterName =
+        typeof activePayload.name === "string" && activePayload.name.trim().length > 0
+          ? activePayload.name
+          : "角色";
+      const personaName = persona?.name;
+      const macroContext = {
+        charName: characterName,
+        userName: personaName ?? "你",
+        ...(personaName ? { personaName } : {}),
+        seed: body.seed ?? 1,
+      };
+      const macroWarnings = new Set<string>();
+      const macroUsed = new Set<string>();
+      // Whitelisted substitution only; unknown macros stay literal and warn.
+      const expandMacros = (text: string): string => {
+        try {
+          const rendered = renderMacros(text, macroContext);
+          for (const warning of rendered.warnings) {
+            macroWarnings.add(warning);
+          }
+          for (const name of rendered.used) {
+            macroUsed.add(name);
+          }
+          return rendered.output;
+        } catch (cause) {
+          if (cause instanceof MacroError) {
+            macroWarnings.add(cause.message);
+            return text;
+          }
+          throw cause;
+        }
+      };
+      const transformText = (text: string, stage: RegexStage): string =>
+        applyStage(expandMacros(text), stage);
+
+      const userInput = transformText(body.userInput, "user_input");
 
       const warnings: string[] = [];
       let systemHistoryCount = 0;
@@ -261,7 +311,7 @@ export function promptRoutes(options: {
       const worldContent = new Map(
         world.activated.map((item) => [
           item.entry.id,
-          applyStage(item.entry.content, "prompt_build"),
+          transformText(item.entry.content, "prompt_build"),
         ]),
       );
 
@@ -274,7 +324,7 @@ export function promptRoutes(options: {
             .sort((left, right) => left.order - right.order || left.id.localeCompare(right.id));
           presetSections = enabledSections.map((section, index) => ({
             id: section.id,
-            content: applyStage(section.content, "prompt_build"),
+            content: transformText(section.content, "prompt_build"),
             mandatory: false,
             priority: 650,
             order: 10 + index / 1000,
@@ -282,18 +332,6 @@ export function promptRoutes(options: {
         } else {
           warnings.push("The selected preset is disabled and was not included.");
         }
-      }
-
-      let persona = body.persona;
-      if (body.personaId) {
-        const personaDetail = await getPersona(db, session.userId, body.personaId);
-        const activePersona = personaDetail.activeVersion;
-        persona = activePersona
-          ? {
-              name: activePersona.payload.displayName,
-              description: applyStage(activePersona.payload.description, "prompt_build"),
-            }
-          : undefined;
       }
 
       let memoryResult: MemorySelectionResult = {
@@ -333,19 +371,31 @@ export function promptRoutes(options: {
         );
       }
 
-      const payload = active.payloadJsonb as Record<string, unknown>;
+      const payload = activePayload;
       const sources: PromptSources = {
         platformPolicy: PLATFORM_POLICY,
         character: {
-          name: typeof payload.name === "string" ? payload.name : "角色",
-          description: typeof payload.description === "string" ? payload.description : "",
-          ...(typeof payload.personality === "string" ? { personality: payload.personality } : {}),
-          ...(typeof payload.scenario === "string" ? { scenario: payload.scenario } : {}),
+          name: characterName,
+          description:
+            typeof payload.description === "string" ? expandMacros(payload.description) : "",
+          ...(typeof payload.personality === "string"
+            ? { personality: expandMacros(payload.personality) }
+            : {}),
+          ...(typeof payload.scenario === "string"
+            ? { scenario: expandMacros(payload.scenario) }
+            : {}),
           ...(typeof payload.firstMessage === "string"
-            ? { firstMessage: payload.firstMessage }
+            ? { firstMessage: expandMacros(payload.firstMessage) }
             : {}),
         },
-        ...(persona ? { persona } : {}),
+        ...(persona
+          ? {
+              persona: {
+                name: persona.name,
+                description: transformText(persona.description, "prompt_build"),
+              },
+            }
+          : {}),
         ...(memoryResult.selected.length > 0
           ? {
               memories: memoryResult.selected.map((entry) => ({
@@ -365,11 +415,11 @@ export function promptRoutes(options: {
         examples: Array.isArray(payload.exampleMessages)
           ? payload.exampleMessages
               .filter((example): example is string => typeof example === "string")
-              .map((example) => applyStage(example, "prompt_build"))
+              .map((example) => transformText(example, "prompt_build"))
           : [],
         history: history.map((message) => ({
           role: message.role,
-          content: applyStage(message.content, "prompt_build"),
+          content: transformText(message.content, "prompt_build"),
         })),
         userInput,
         closingConstraints: CLOSING_CONSTRAINTS,
@@ -390,7 +440,7 @@ export function promptRoutes(options: {
           components: plan.components.map((component) => ({ ...component })),
           estimatedInputTokens: plan.estimatedInputTokens,
           reservedOutputTokens: plan.reservedOutputTokens,
-          warnings: [...plan.warnings],
+          warnings: [...plan.warnings, ...macroWarnings],
           systemPrompt: plan.systemPrompt,
           messages: plan.messages.map((message) => ({ ...message })),
         },
@@ -445,6 +495,10 @@ export function promptRoutes(options: {
           })),
           skipped: [...memoryResult.skipped.map((item) => ({ ...item })), ...missingMemories],
           totalEstimatedTokens: memoryResult.totalEstimatedTokens,
+        },
+        macros: {
+          used: [...macroUsed],
+          warnings: [...macroWarnings],
         },
       };
       return response;

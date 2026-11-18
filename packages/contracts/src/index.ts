@@ -834,6 +834,10 @@ export const promptPreviewResponseSchema = z.object({
     deferred: z.array(regexSkippedDtoSchema),
     transformedInput: z.string(),
   }),
+  macros: z.object({
+    used: z.array(z.string()),
+    warnings: z.array(z.string()),
+  }),
   memory: z.object({
     selected: z.array(
       z.object({

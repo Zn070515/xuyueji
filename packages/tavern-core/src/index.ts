@@ -40,6 +40,7 @@ export interface WorldInfoScope {
   readonly conversationBookIds: readonly string[];
 }
 
+export * from "./macros.js";
 export * from "./memory.js";
 export * from "./safe-regex.js";
 export * from "./world-info.js";
@@ -51,6 +52,7 @@ export const TAVERN_CORE_STATUS = {
     "world-info-triggering",
     "bounded-regex-engine",
     "memory-retrieval",
+    "macro-whitelist-interpreter",
   ],
   planned: [
     "recursive-activation-limits",
