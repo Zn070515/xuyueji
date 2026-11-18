@@ -1,8 +1,14 @@
 import { Link } from "react-router-dom";
 
 import { Eyebrow, GateBadge, StatusPill } from "../components/Primitives.js";
-import { CAPABILITY_NOTES, DRAFT_PACKAGES, PLANNED_FEATURES } from "../lib/demo-data.js";
+import {
+  CAPABILITY_NOTES,
+  DRAFT_PACKAGES,
+  PLANNED_FEATURES,
+  PRODUCT_FEATURES,
+} from "../lib/demo-data.js";
 import { useApiMeta } from "../lib/use-api-meta.js";
+import { usePresentationMode } from "../lib/use-presentation.js";
 
 const PRINCIPLES = [
   {
@@ -24,6 +30,7 @@ const PRINCIPLES = [
 
 export function HomePage() {
   const api = useApiMeta();
+  const presentation = usePresentationMode();
   const status =
     api.status === "connected"
       ? { tone: "connected" as const, label: `API 已连接 · ${api.meta.version}` }
@@ -53,57 +60,85 @@ export function HomePage() {
                 to="/chat"
                 className="inline-flex min-h-12 items-center rounded-full bg-moon-400 px-6 py-3 text-sm font-semibold text-night-950 transition-transform hover:-translate-y-0.5 hover:bg-moon-300"
               >
-                进入聊天演示
+                {presentation ? "进入聊天" : "进入聊天演示"}
               </Link>
               <Link
                 to="/wallet"
                 className="inline-flex min-h-12 items-center rounded-full border border-paper-50/20 px-6 py-3 text-sm font-medium text-paper-50 transition-colors hover:bg-paper-50/5"
               >
-                查看积分与价格原则
+                查看积分与套餐
               </Link>
-              <StatusPill status={status.tone} label={status.label} />
+              {presentation ? null : <StatusPill status={status.tone} label={status.label} />}
             </div>
 
             <p className="mt-5 max-w-2xl text-xs leading-6 text-mist-400">
-              当前为 M1 演示环境：账号与云端存档已接入，聊天仍为本地演示，
-              <span className="text-moon-300">不调用 DeepSeek、不开放真实付款</span>。
+              {presentation
+                ? "账号、角色与会话云端存档已经开放；模型生成与支付服务以正式公告为准。"
+                : "当前为 M1 演示环境：账号与云端存档已接入，聊天仍为本地演示，不调用 DeepSeek、不开放真实付款。"}
             </p>
           </div>
 
           <aside className="glass-card relative rounded-3xl p-6 sm:p-8">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-mist-400">M1 运行状态</p>
-                <p className="mt-2 font-display text-2xl text-paper-50">账号与云端存档已接入</p>
-              </div>
-              <span className="rounded-full border border-moon-400/40 px-3 py-1 text-[11px] text-moon-200">
-                demo
-              </span>
-            </div>
-
-            <dl className="mt-6 space-y-4">
-              {CAPABILITY_NOTES.map((item) => (
-                <div
-                  key={item.label}
-                  className="flex items-start justify-between gap-4 border-b border-paper-50/10 pb-4 last:border-0 last:pb-0"
-                >
+            {presentation ? (
+              <>
+                <div className="flex items-center justify-between gap-3">
                   <div>
-                    <dt className="text-sm text-paper-50">{item.label}</dt>
-                    <dd className="mt-1 text-xs leading-5 text-mist-400">{item.detail}</dd>
+                    <p className="text-xs uppercase tracking-[0.24em] text-mist-400">产品概览</p>
+                    <p className="mt-2 font-display text-2xl text-paper-50">为长篇故事而生</p>
                   </div>
-                  <span className="shrink-0 rounded-full bg-paper-50/5 px-2.5 py-1 text-[11px] text-moon-300">
-                    {item.value}
+                  <span className="rounded-full border border-moon-400/40 px-3 py-1 text-[11px] text-moon-200">
+                    Xuyueji
                   </span>
                 </div>
-              ))}
-            </dl>
+                <ul className="mt-6 space-y-4">
+                  {PRODUCT_FEATURES.map((feature) => (
+                    <li
+                      key={feature.title}
+                      className="border-b border-paper-50/10 pb-4 last:border-0 last:pb-0"
+                    >
+                      <p className="text-sm text-paper-50">{feature.title}</p>
+                      <p className="mt-1 text-xs leading-5 text-mist-400">{feature.description}</p>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.24em] text-mist-400">M1 运行状态</p>
+                    <p className="mt-2 font-display text-2xl text-paper-50">账号与云端存档已接入</p>
+                  </div>
+                  <span className="rounded-full border border-moon-400/40 px-3 py-1 text-[11px] text-moon-200">
+                    demo
+                  </span>
+                </div>
 
-            <div className="mt-6 rounded-2xl border border-moon-400/20 bg-night-950/50 p-4">
-              <p className="text-xs leading-6 text-mist-300">
-                <span className="text-moon-300">演示角色：</span>
-                星月书店店主 · 原创虚构角色，不含任何真实用户或受版权保护的角色卡。
-              </p>
-            </div>
+                <dl className="mt-6 space-y-4">
+                  {CAPABILITY_NOTES.map((item) => (
+                    <div
+                      key={item.label}
+                      className="flex items-start justify-between gap-4 border-b border-paper-50/10 pb-4 last:border-0 last:pb-0"
+                    >
+                      <div>
+                        <dt className="text-sm text-paper-50">{item.label}</dt>
+                        <dd className="mt-1 text-xs leading-5 text-mist-400">{item.detail}</dd>
+                      </div>
+                      <span className="shrink-0 rounded-full bg-paper-50/5 px-2.5 py-1 text-[11px] text-moon-300">
+                        {item.value}
+                      </span>
+                    </div>
+                  ))}
+                </dl>
+
+                <div className="mt-6 rounded-2xl border border-moon-400/20 bg-night-950/50 p-4">
+                  <p className="text-xs leading-6 text-mist-300">
+                    <span className="text-moon-300">演示角色：</span>
+                    星月书店店主 · 原创虚构角色，不含任何真实用户或受版权保护的角色卡。
+                  </p>
+                </div>
+              </>
+            )}
           </aside>
         </div>
       </section>
@@ -125,35 +160,52 @@ export function HomePage() {
       <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <Eyebrow>V1.0 功能版图</Eyebrow>
-            <h2 className="mt-3 font-display text-3xl text-paper-50">P0 与 P1 都是发版门槛</h2>
+            <Eyebrow>{presentation ? "产品能力" : "V1.0 功能版图"}</Eyebrow>
+            <h2 className="mt-3 font-display text-3xl text-paper-50">
+              {presentation ? "从角色设定到长篇分支" : "P0 与 P1 都是发版门槛"}
+            </h2>
             <p className="mt-2 max-w-2xl text-sm leading-7 text-mist-300">
-              里程碑只是交付顺序，不是功能阉割。下列能力已建立领域边界或计划在对应 Gate
-              实现；未实现的模块不会用静态占位页冒充完成。
+              {presentation
+                ? "把角色、剧情与数据留在你可控的云端存档里；需要时可以完整带走。"
+                : "里程碑只是交付顺序，不是功能阉割。下列能力已建立领域边界或计划在对应 Gate 实现；未实现的模块不会用静态占位页冒充完成。"}
             </p>
           </div>
           <GateBadge gate="M1 · 进行中" tone="ready" />
         </div>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {PLANNED_FEATURES.map((feature) => (
-            <article
-              key={feature.title}
-              className="glass-card flex flex-col rounded-2xl p-5 transition-colors hover:border-moon-400/30"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="font-display text-lg text-paper-50">{feature.title}</h3>
-                <GateBadge
-                  gate={feature.gate}
-                  tone={feature.state === "已建立底座" ? "ready" : "planned"}
-                />
-              </div>
-              <p className="mt-3 flex-1 text-sm leading-7 text-mist-300">{feature.description}</p>
-              <p className="mt-4 text-[11px] uppercase tracking-[0.2em] text-mist-400">
-                {feature.state}
-              </p>
-            </article>
-          ))}
+          {presentation
+            ? PRODUCT_FEATURES.map((feature) => (
+                <article
+                  key={feature.title}
+                  className="glass-card flex flex-col rounded-2xl p-5 transition-colors hover:border-moon-400/30"
+                >
+                  <h3 className="font-display text-lg text-paper-50">{feature.title}</h3>
+                  <p className="mt-3 flex-1 text-sm leading-7 text-mist-300">
+                    {feature.description}
+                  </p>
+                </article>
+              ))
+            : PLANNED_FEATURES.map((feature) => (
+                <article
+                  key={feature.title}
+                  className="glass-card flex flex-col rounded-2xl p-5 transition-colors hover:border-moon-400/30"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="font-display text-lg text-paper-50">{feature.title}</h3>
+                    <GateBadge
+                      gate={feature.gate}
+                      tone={feature.state === "已建立底座" ? "ready" : "planned"}
+                    />
+                  </div>
+                  <p className="mt-3 flex-1 text-sm leading-7 text-mist-300">
+                    {feature.description}
+                  </p>
+                  <p className="mt-4 text-[11px] uppercase tracking-[0.2em] text-mist-400">
+                    {feature.state}
+                  </p>
+                </article>
+              ))}
         </div>
       </section>
 
@@ -162,19 +214,28 @@ export function HomePage() {
           <div>
             <Eyebrow>计费与数据</Eyebrow>
             <h2 className="mt-3 font-display text-3xl leading-tight text-paper-50">
-              价格会公示，余额会记账，数据能带走。
+              {presentation
+                ? "积分规则清楚，数据始终能带走。"
+                : "价格会公示，余额会记账，数据能带走。"}
             </h2>
             <p className="mt-4 text-sm leading-7 text-mist-300">
-              积分是整数记账单位。生成开始前冻结本次上限，结束后按实际用量结算并释放余款；
-              支付回调重复到达只入账一次。模型价格按 DeepSeek 官方实时文档校验后写入带生效期的
-              tariff 表，不在前端硬编码。
+              {presentation
+                ? "积分是续月记的服务计量单位。价格与规则会集中公示，余额与消费明细由服务端记录；角色、剧情与设定可以随时导出。"
+                : "积分是整数记账单位。生成开始前冻结本次上限，结束后按实际用量结算并释放余款；支付回调重复到达只入账一次。模型价格按 DeepSeek 官方实时文档校验后写入带生效期的 tariff 表，不在前端硬编码。"}
             </p>
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              {[
-                ["冻结", "生成前锁定上限积分"],
-                ["结算", "终态按 usage 扣费"],
-                ["退款", "订单与账本留痕"],
-              ].map(([title, body]) => (
+              {(presentation
+                ? [
+                    ["透明定价", "价格与规则集中公示"],
+                    ["用量记录", "余额与消费明细可查"],
+                    ["数据导出", "故事与设定随时带走"],
+                  ]
+                : [
+                    ["冻结", "生成前锁定上限积分"],
+                    ["结算", "终态按 usage 扣费"],
+                    ["退款", "订单与账本留痕"],
+                  ]
+              ).map(([title, body]) => (
                 <div key={title} className="rounded-xl border hairline bg-night-950/40 p-4">
                   <p className="text-sm font-medium text-moon-200">{title}</p>
                   <p className="mt-1 text-xs leading-6 text-mist-400">{body}</p>
@@ -187,13 +248,17 @@ export function HomePage() {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-slate-500">
-                  充值套餐（草案）
+                  {presentation ? "积分套餐" : "充值套餐（草案）"}
                 </p>
-                <p className="mt-2 font-display text-2xl text-night-900">未生效 · 按钮禁用</p>
+                <p className="mt-2 font-display text-2xl text-night-900">
+                  {presentation ? "以正式公示为准" : "未生效 · 按钮禁用"}
+                </p>
               </div>
-              <span className="rounded-full border border-amber-700/30 bg-amber-100 px-3 py-1 text-[11px] text-amber-900">
-                M3 前不收款
-              </span>
+              {presentation ? null : (
+                <span className="rounded-full border border-amber-700/30 bg-amber-100 px-3 py-1 text-[11px] text-amber-900">
+                  M3 前不收款
+                </span>
+              )}
             </div>
 
             <ul className="mt-6 divide-y divide-slate-200">
@@ -204,23 +269,30 @@ export function HomePage() {
                     <p className="mt-0.5 text-xs text-slate-500">{pack.note}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-night-900">{pack.pointsLabel}</p>
-                    <p className="text-xs text-slate-500">{pack.amountLabel}</p>
+                    <p className="text-sm font-semibold text-night-900">
+                      {presentation ? pack.pointsLabel.replace("（草案）", "") : pack.pointsLabel}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {presentation
+                        ? pack.amountLabel.replace("（草案）", " 参考价")
+                        : pack.amountLabel}
+                    </p>
                   </div>
                 </li>
               ))}
             </ul>
 
             <p className="mt-5 rounded-xl bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-900">
-              套餐金额与积分仅为展示草案，不构成要约。支付宝商户准入未完成前，
-              不创建订单、不接收真实付款。
+              {presentation
+                ? "最终积分与价格以正式公示为准；支付服务开放后可在线购买。"
+                : "套餐金额与积分仅为展示草案，不构成要约。支付宝商户准入未完成前，不创建订单、不接收真实付款。"}
             </p>
 
             <Link
               to="/wallet"
               className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-full bg-night-900 px-5 py-2.5 text-sm font-medium text-paper-50 transition-colors hover:bg-night-800"
             >
-              查看钱包页面
+              {presentation ? "查看积分套餐" : "查看钱包页面"}
             </Link>
           </div>
         </div>
@@ -232,36 +304,50 @@ export function HomePage() {
             <div className="p-8 sm:p-10">
               <Eyebrow>从哪里开始</Eyebrow>
               <h2 className="mt-3 font-display text-3xl leading-tight text-night-900">
-                先看真实页面，再看下一道 Gate。
+                {presentation
+                  ? "先看真实页面，再开始你的故事。"
+                  : "先看真实页面，再看下一道 Gate。"}
               </h2>
               <p className="mt-4 max-w-lg text-sm leading-7 text-slate-600">
-                首页、聊天壳与充值页都由本地运行的前端代码渲染。三张真实截图会作为支付宝
-                商户审核的预备材料，但截图不等于任何支付或 AI 服务已获批准。
+                {presentation
+                  ? "从首页了解产品，在积分页查看套餐，再进入聊天与角色管理。账号与故事数据保存在云端，也可以随时导出。"
+                  : "首页、聊天壳与充值页都由本地运行的前端代码渲染。三张真实截图会作为支付宝商户审核的预备材料，但截图不等于任何支付或 AI 服务已获批准。"}
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link
                   to="/chat"
                   className="inline-flex min-h-11 items-center rounded-full bg-night-900 px-5 py-2.5 text-sm font-medium text-paper-50 hover:bg-night-800"
                 >
-                  体验聊天壳
+                  {presentation ? "进入聊天" : "体验聊天壳"}
                 </Link>
                 <Link
                   to="/help"
                   className="inline-flex min-h-11 items-center rounded-full border border-night-900/20 px-5 py-2.5 text-sm font-medium text-night-900 hover:bg-night-900/5"
                 >
-                  查看当前状态
+                  {presentation ? "查看帮助" : "查看当前状态"}
                 </Link>
               </div>
             </div>
             <div className="flex flex-col justify-center gap-3 bg-night-900 p-8 text-mist-200 sm:p-10">
-              <p className="font-display text-xl text-moon-300">M1 交付清单</p>
-              {[
-                "邮箱密码登录与 HttpOnly 会话",
-                "角色版本 CAS 与归属隔离",
-                "消息图：Swipe / 分支 / tombstone",
-                "2,500 条消息分页与同步游标",
-                "JSON 导出恢复 + Dexie outbox",
-              ].map((item) => (
+              <p className="font-display text-xl text-moon-300">
+                {presentation ? "当前可用" : "M1 交付清单"}
+              </p>
+              {(presentation
+                ? [
+                    "账号登录与云端存档",
+                    "角色版本历史",
+                    "剧情分支与消息图",
+                    "数据导出与恢复",
+                    "跨设备继续同一条剧情",
+                  ]
+                : [
+                    "邮箱密码登录与 HttpOnly 会话",
+                    "角色版本 CAS 与归属隔离",
+                    "消息图：Swipe / 分支 / tombstone",
+                    "2,500 条消息分页与同步游标",
+                    "JSON 导出恢复 + Dexie outbox",
+                  ]
+              ).map((item) => (
                 <p key={item} className="flex items-center gap-3 text-sm">
                   <span className="h-1.5 w-1.5 rounded-full bg-moon-400" aria-hidden="true" />
                   {item}

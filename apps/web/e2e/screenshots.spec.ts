@@ -87,25 +87,34 @@ test.describe("真实渲染页面截图", () => {
       fullPage: true,
       animations: "disabled",
     });
+
+    await page.goto("/?presentation=1");
+    await expect(page.getByRole("heading", { name: /续月记/ }).first()).toBeVisible();
+    await expect(page.getByText("M1")).toHaveCount(0);
+    await expect(page.getByText("演示模式")).toHaveCount(0);
     await page.screenshot({
       path: path.join(screenshotDir, "h5-home.png"),
       fullPage: false,
       animations: "disabled",
     });
 
-    await page.goto("/wallet");
-    await expect(page.getByRole("heading", { name: /余额由服务端决定/ })).toBeVisible();
+    await page.goto("/wallet?presentation=1");
+    await expect(page.getByRole("heading", { name: "积分与套餐" })).toBeVisible();
     await expect(page.getByText("体验包").first()).toBeVisible();
+    await expect(page.getByText("支付服务暂未开放").first()).toBeVisible();
+    await expect(page.getByText("M1")).toHaveCount(0);
     await stabilizeFullPage(page);
     await page.locator("#packages").screenshot({
       path: path.join(screenshotDir, "h5-service.png"),
       animations: "disabled",
     });
 
-    await page.goto("/wallet/checkout");
+    await page.goto("/wallet/checkout?presentation=1");
     await expect(page.getByRole("heading", { name: "确认积分订单" })).toBeVisible();
-    await expect(page.getByText("支付宝商户入驻与网站支付产品尚未获批")).toBeVisible();
-    await expect(page.getByRole("button", { name: "确认支付（未开通）" })).toBeDisabled();
+    await expect(page.getByText("支付服务暂未开放").first()).toBeVisible();
+    await expect(page.getByRole("button", { name: "支付服务暂未开放" })).toBeDisabled();
+    await expect(page.getByText("演示订单号")).toHaveCount(0);
+    await expect(page.getByText("商户入驻")).toHaveCount(0);
     await stabilizeFullPage(page);
     await page.locator("#checkout-card").screenshot({
       path: path.join(screenshotDir, "h5-payment.png"),

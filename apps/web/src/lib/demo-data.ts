@@ -41,6 +41,29 @@ export const DEMO_REPLIES: readonly string[] = [
   "她抬头看向你，像是在确认某件很久以前的事。「你上次离开时，把一句话落在了这里。」\n\n她把一张泛黄的纸推到你面前。",
 ];
 
+/**
+ * Customer-facing capability summary used by presentation mode. These are
+ * implemented paths, not roadmap promises or internal gate labels.
+ */
+export const PRODUCT_FEATURES = [
+  {
+    title: "云端存档与跨设备续聊",
+    description: "登录后角色、会话与消息图保存在云端，换一台设备可以继续同一条剧情。",
+  },
+  {
+    title: "角色版本与冲突保护",
+    description: "每次保存生成新版本；另一台设备已更新时会提示冲突，不静默覆盖。",
+  },
+  {
+    title: "消息图与剧情分支",
+    description: "消息以图结构保存，编辑与删除保留历史，重要剧情可以回看与导出。",
+  },
+  {
+    title: "数据导出与恢复",
+    description: "角色、会话、分支与消息可导出 JSON，并导入到另一个账号。",
+  },
+] as const;
+
 export interface PlannedFeature {
   readonly title: string;
   readonly description: string;

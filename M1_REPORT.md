@@ -165,9 +165,11 @@ M1 更新后的真实截图（Playwright，本地 Vite + Fastify + PostgreSQL）
 
 - `artifacts/screenshots/h5-home.png` — 首页
 - `artifacts/screenshots/h5-service.png` — 积分套餐/服务页
-- `artifacts/screenshots/h5-payment.png` — 订单确认页（支付未开通）
+- `artifacts/screenshots/h5-payment.png` — 订单确认页（展示模式；支付服务暂未开放）
 
-说明与重新生成命令见 [`docs/PAYMENT_MATERIALS.md`](docs/PAYMENT_MATERIALS.md)。站点尚未公开上线，
+截图使用 `?presentation=1` 展示模式：隐藏 M0/M1、Gate、演示模式、API/outbox/数据库等工程信息，
+但支付状态仍真实显示「支付服务暂未开放」。说明与重新生成命令见
+[`docs/PAYMENT_MATERIALS.md`](docs/PAYMENT_MATERIALS.md)。站点尚未公开上线，
 表单中的 H5 状态应如实选择「未上线」，截图不等于站点已上线或支付已开通。
 
 E2E 的注册/云端角色/导出流程见 `apps/web/e2e/cloud.spec.ts`，运行输出保存在 CI artifact。

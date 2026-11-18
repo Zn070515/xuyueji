@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link, NavLink } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthProvider.js";
+import { usePresentationMode } from "../lib/use-presentation.js";
 
 const NAV_ITEMS = [
   { to: "/", label: "首页" },
@@ -46,6 +47,10 @@ function MoonMark({ className = "h-7 w-7" }: { className?: string }) {
 }
 
 export function DemoBanner() {
+  const presentation = usePresentationMode();
+  if (presentation) {
+    return null;
+  }
   return (
     <div className="border-b border-moon-400/30 bg-moon-400/10">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 py-2 text-center text-[13px] leading-5 text-moon-200">
@@ -141,6 +146,7 @@ export function MobileNav() {
 }
 
 export function SiteFooter() {
+  const presentation = usePresentationMode();
   return (
     <footer className="mt-20 border-t hairline bg-night-900/50 pb-20 md:pb-0">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr]">
@@ -150,13 +156,15 @@ export function SiteFooter() {
             <span className="font-display text-lg tracking-[0.16em] text-paper-50">续月记</span>
           </div>
           <p className="mt-4 max-w-md text-sm leading-7 text-mist-300">
-            面向中国成年人的 AI 文本互动、长篇角色扮演与文学创作工具。当前版本包含 M1
-            账号与云端存档基础；模型调用与真实支付仍未开放。
+            面向中国成年人的 AI 文本互动、长篇角色扮演与文学创作工具。云端存档、角色版本、
+            剧情分支与数据导出已经可用；模型生成与支付服务以正式公告为准。
           </p>
-          <p className="mt-4 text-xs leading-6 text-mist-400">
-            运营主体、ICP 备案号与 AI
-            服务相关手续将在正式上线前于本页公示。本页不构成任何已获批声明。
-          </p>
+          {presentation ? null : (
+            <p className="mt-4 text-xs leading-6 text-mist-400">
+              运营主体、ICP 备案号与 AI
+              服务相关手续将在正式上线前于本页公示。本页不构成任何已获批声明。
+            </p>
+          )}
         </div>
 
         <div>
@@ -208,8 +216,12 @@ export function SiteFooter() {
 
       <div className="border-t hairline">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-5 text-xs text-mist-400 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <span>© 2026 续月记 Xuyueji · 演示环境</span>
-          <span>本演示不调用模型、不开放真实收款；账号与故事数据仅用于受控演示。</span>
+          <span>© 2026 续月记 Xuyueji</span>
+          <span>
+            {presentation
+              ? "支付服务暂未开放；积分与价格以正式公示为准。"
+              : "本演示不调用模型、不开放真实收款；账号与故事数据仅用于受控演示。"}
+          </span>
         </div>
       </div>
     </footer>

@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { usePresentationMode } from "../lib/use-presentation.js";
+
 export function Eyebrow({ children }: { children: ReactNode }) {
   return (
     <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-moon-400">
@@ -15,6 +17,10 @@ export function GateBadge({
   gate: string;
   tone?: "planned" | "ready";
 }) {
+  const presentation = usePresentationMode();
+  if (presentation) {
+    return null;
+  }
   return (
     <span
       className={[
