@@ -1,7 +1,14 @@
-import type { ConversationDetail, ConversationSummaryDto, MessageDto } from "@xuyueji/contracts";
+import type {
+  CharacterSummaryDto,
+  ConversationDetail,
+  ConversationSummaryDto,
+  MessageDto,
+  PromptPreviewResponse,
+} from "@xuyueji/contracts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
+import { listCharacters } from "../lib/characters-api.js";
 import {
   appendUserMessage,
   createConversation,
@@ -10,6 +17,7 @@ import {
   listMessages,
 } from "../lib/conversations-api.js";
 import { ApiError } from "../lib/http.js";
+import { previewPrompt } from "../lib/prompt-api.js";
 import { DemoDataNote, GateBadge, PageHeader } from "./Primitives.js";
 
 function formatTime(value: string): string {
@@ -86,6 +94,11 @@ export function CloudChat() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [characters, setCharacters] = useState<CharacterSummaryDto[]>([]);
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
+  const [promptPreview, setPromptPreview] = useState<PromptPreviewResponse | null>(null);
+  const [previewing, setPreviewing] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const branch = useMemo(
@@ -98,6 +111,7 @@ export function CloudChat() {
       setLoading(true);
       setError(null);
       setNotice(null);
+      setPromptPreview(null);
       try {
         const nextDetail = await getConversation(conversationId);
         const branchId =
@@ -154,6 +168,24 @@ export function CloudChat() {
       active = false;
     };
   }, [loadConversation]);
+
+  useEffect(() => {
+    let active = true;
+    listCharacters()
+      .then((result) => {
+        if (!active) {
+          return;
+        }
+        setCharacters(result.characters);
+        setSelectedCharacterId((current) => current ?? result.characters[0]?.id ?? null);
+      })
+      .catch(() => {
+        // The chat still works without a character; preview stays disabled.
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // New pages change the scroll height; messages is the intended trigger.
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll follows the message list
@@ -268,6 +300,7 @@ export function CloudChat() {
     }
     setSelectedBranchId(branchId);
     setError(null);
+    setPromptPreview(null);
     try {
       const page = await listMessages({ conversationId: activeId, branchId, limit: 50 });
       setMessages(page.messages);
@@ -275,6 +308,32 @@ export function CloudChat() {
       setNextBefore(page.nextBefore);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "切换分支失败。");
+    }
+  }
+
+  async function handlePreview() {
+    if (!activeId || !branch || !selectedCharacterId) {
+      setPreviewError("先选择角色和分支，再生成 Prompt 预览。");
+      return;
+    }
+    setPreviewing(true);
+    setPreviewError(null);
+    try {
+      const input = pendingSend?.content ?? (draft.trim() || "（预览）请继续故事。");
+      const result = await previewPrompt({
+        conversationId: activeId,
+        branchId: branch.id,
+        characterId: selectedCharacterId,
+        userInput: input,
+        maxOutputTokens: 800,
+        contextWindowTokens: 8192,
+        seed: 1,
+      });
+      setPromptPreview(result);
+    } catch (cause) {
+      setPreviewError(cause instanceof Error ? cause.message : "生成 Prompt 预览失败。");
+    } finally {
+      setPreviewing(false);
     }
   }
 
@@ -453,6 +512,101 @@ export function CloudChat() {
         </section>
 
         <aside className="space-y-3">
+          <section className="glass-card rounded-2xl p-4">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-mist-400">Prompt 预览</p>
+              <GateBadge gate="M2" tone="ready" />
+            </div>
+
+            {characters.length === 0 ? (
+              <p className="mt-2 text-xs leading-6 text-mist-400">
+                还没有可用于预览的角色。
+                <Link className="ml-1 text-moon-300 underline underline-offset-4" to="/characters">
+                  创建角色
+                </Link>
+              </p>
+            ) : (
+              <>
+                <label htmlFor="prompt-character" className="mt-3 block text-[11px] text-mist-400">
+                  预览角色
+                </label>
+                <select
+                  id="prompt-character"
+                  value={selectedCharacterId ?? ""}
+                  onChange={(event) => {
+                    setSelectedCharacterId(event.target.value || null);
+                    setPromptPreview(null);
+                  }}
+                  className="mt-1 min-h-10 w-full rounded-xl border hairline bg-night-950/60 px-2 py-1.5 text-xs text-paper-50"
+                >
+                  {characters.map((character) => (
+                    <option key={character.id} value={character.id}>
+                      {character.name} · v{character.revision}
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  type="button"
+                  onClick={() => void handlePreview()}
+                  disabled={previewing || !branch || !selectedCharacterId}
+                  className="mt-2 inline-flex min-h-9 w-full items-center justify-center rounded-full border border-moon-400/40 px-3 py-1.5 text-[11px] text-moon-200 hover:bg-moon-400/10 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {previewing ? "生成中…" : "生成 Prompt 预览"}
+                </button>
+
+                {previewError ? (
+                  <p
+                    role="alert"
+                    className="mt-2 rounded-lg bg-rose-400/10 px-2 py-1.5 text-[10px] text-rose-100"
+                  >
+                    {previewError}
+                  </p>
+                ) : null}
+
+                {promptPreview ? (
+                  <div className="mt-3 space-y-2 rounded-xl border hairline bg-night-950/40 p-2 text-[11px] text-mist-300">
+                    <p>
+                      digest{" "}
+                      <span className="font-mono text-moon-300">{promptPreview.plan.digest}</span>
+                    </p>
+                    <p>
+                      {promptPreview.plan.estimatedInputTokens} input tok ·{" "}
+                      {promptPreview.plan.reservedOutputTokens} reserved output
+                    </p>
+                    <p>世界书命中 {promptPreview.worldInfo.activated.length} 条</p>
+                    {promptPreview.plan.warnings.length > 0 ? (
+                      <ul className="list-disc pl-3 text-[10px] text-moon-300">
+                        {promptPreview.plan.warnings.map((warning) => (
+                          <li key={warning}>{warning}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    <ul className="max-h-32 space-y-0.5 overflow-auto">
+                      {promptPreview.plan.components.map((component) => (
+                        <li
+                          key={`${component.kind}:${component.sourceId}`}
+                          className={
+                            component.included ? "text-mist-200" : "text-mist-500 line-through"
+                          }
+                        >
+                          {component.included ? "✓" : "×"} {component.kind} ·{" "}
+                          {component.estimatedTokens} tok
+                        </li>
+                      ))}
+                    </ul>
+                    <details>
+                      <summary className="cursor-pointer text-moon-300">查看 systemPrompt</summary>
+                      <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap text-[10px] leading-5 text-mist-300">
+                        {promptPreview.plan.systemPrompt}
+                      </pre>
+                    </details>
+                  </div>
+                ) : null}
+              </>
+            )}
+          </section>
+
           <section className="glass-card rounded-2xl p-4">
             <p className="text-[11px] uppercase tracking-[0.2em] text-mist-400">会话信息</p>
             <dl className="mt-3 space-y-2 text-xs">
