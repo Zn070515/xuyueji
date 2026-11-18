@@ -304,7 +304,9 @@ export const appendMessageRequestSchema = z
     branchId: z.string().min(1).max(100),
     expectedBranchRevision: z.number().int().nonnegative(),
     parentId: z.string().min(1).max(100).nullable(),
-    role: z.enum(["user", "system"]),
+    // Normal chat writes are always user messages. Internal system messages
+    // must come from a protected server-side path, never the public client.
+    role: z.literal("user"),
     content: z.string().min(1).max(100_000),
     responseGroupId: z.string().min(1).max(100).optional(),
     requestId: z.string().min(1).max(100),
