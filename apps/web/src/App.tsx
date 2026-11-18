@@ -1,13 +1,18 @@
 import { useEffect } from "react";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 
+import { AuthProvider } from "./auth/AuthProvider.js";
 import { AppShell } from "./components/Layout.js";
+import { CharactersPage } from "./pages/CharactersPage.js";
 import { ChatPage } from "./pages/ChatPage.js";
 import { HelpPage } from "./pages/HelpPage.js";
 import { HomePage } from "./pages/HomePage.js";
 import { ContactPage, PrivacyPage, RefundsPage, TermsPage } from "./pages/LegalPages.js";
+import { LoginPage } from "./pages/LoginPage.js";
 import { NotFoundPage } from "./pages/NotFoundPage.js";
 import { PlannedPage } from "./pages/PlannedPage.js";
+import { RegisterPage } from "./pages/RegisterPage.js";
+import { SettingsPage } from "./pages/SettingsPage.js";
 import { WalletPage } from "./pages/WalletPage.js";
 
 function ScrollToTop() {
@@ -20,20 +25,6 @@ function ScrollToTop() {
 }
 
 const PLANNED_PAGES = {
-  characters: {
-    eyebrow: "角色 / Characters",
-    title: "角色卡，是长篇的根。",
-    description:
-      "角色卡完整字段、多个开场白、示例消息、头像、标签与版本化，以及 V2/V3 JSON/PNG 导入导出。",
-    gate: "M1 / M2",
-    planned: [
-      "角色与角色版本的 CAS 编辑",
-      "V2/V3 角色卡 JSON 与 PNG 导入",
-      "扩展字段 round-trip 与校验报告",
-      "多开场白、示例消息、头像与标签",
-      "角色列表、搜索与归档",
-    ],
-  },
   lorebooks: {
     eyebrow: "世界书 / Lorebooks",
     title: "让世界在需要时开口。",
@@ -75,20 +66,6 @@ const PLANNED_PAGES = {
       "摘要请求的 usage 与费用可见",
     ],
   },
-  settings: {
-    eyebrow: "设置 / Settings",
-    title: "同步、导入导出与隐私。",
-    description:
-      "云端权威存档、Dexie 缓存与 outbox、完整 ZIP 导出/导入、删除账号与聊天、备份保留说明。",
-    gate: "M1",
-    planned: [
-      "PostgreSQL 权威存档与增量同步游标",
-      "Dexie 本地缓存、草稿与 outbox",
-      "CAS 冲突、tombstone 与 cursor 过期重建",
-      "完整 ZIP 导出、导入 dry-run 与哈希校验",
-      "账号删除、数据保留周期与备份说明",
-    ],
-  },
   admin: {
     eyebrow: "管理 / Admin",
     title: "后台不是普通用户的页面。",
@@ -108,26 +85,30 @@ const PLANNED_PAGES = {
 export function App() {
   return (
     <BrowserRouter>
-      <ScrollToTop />
-      <AppShell>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/chat" element={<ChatPage />} />
-          <Route path="/wallet" element={<WalletPage />} />
-          <Route path="/help" element={<HelpPage />} />
-          <Route path="/terms" element={<TermsPage />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/refunds" element={<RefundsPage />} />
-          <Route path="/contact" element={<ContactPage />} />
-          <Route path="/characters" element={<PlannedPage {...PLANNED_PAGES.characters} />} />
-          <Route path="/lorebooks" element={<PlannedPage {...PLANNED_PAGES.lorebooks} />} />
-          <Route path="/presets" element={<PlannedPage {...PLANNED_PAGES.presets} />} />
-          <Route path="/memories" element={<PlannedPage {...PLANNED_PAGES.memories} />} />
-          <Route path="/settings" element={<PlannedPage {...PLANNED_PAGES.settings} />} />
-          <Route path="/admin" element={<PlannedPage {...PLANNED_PAGES.admin} />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </AppShell>
+      <AuthProvider>
+        <ScrollToTop />
+        <AppShell>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/chat" element={<ChatPage />} />
+            <Route path="/characters" element={<CharactersPage />} />
+            <Route path="/wallet" element={<WalletPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/help" element={<HelpPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/refunds" element={<RefundsPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/lorebooks" element={<PlannedPage {...PLANNED_PAGES.lorebooks} />} />
+            <Route path="/presets" element={<PlannedPage {...PLANNED_PAGES.presets} />} />
+            <Route path="/memories" element={<PlannedPage {...PLANNED_PAGES.memories} />} />
+            <Route path="/admin" element={<PlannedPage {...PLANNED_PAGES.admin} />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </AppShell>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

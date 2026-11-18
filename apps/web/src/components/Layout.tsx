@@ -1,9 +1,12 @@
 import type { ReactNode } from "react";
 import { Link, NavLink } from "react-router-dom";
 
+import { useAuth } from "../auth/AuthProvider.js";
+
 const NAV_ITEMS = [
   { to: "/", label: "首页" },
   { to: "/chat", label: "聊天演示" },
+  { to: "/characters", label: "角色" },
   { to: "/wallet", label: "积分" },
   { to: "/help", label: "帮助" },
 ] as const;
@@ -12,7 +15,7 @@ const MOBILE_ITEMS = [
   { to: "/", label: "首页", glyph: "月" },
   { to: "/chat", label: "聊天", glyph: "话" },
   { to: "/wallet", label: "积分", glyph: "卷" },
-  { to: "/help", label: "帮助", glyph: "问" },
+  { to: "/settings", label: "账户", glyph: "我" },
 ] as const;
 
 const LEGAL_ITEMS = [
@@ -49,13 +52,17 @@ export function DemoBanner() {
         <span className="inline-flex items-center gap-1.5 rounded-full border border-moon-400/40 px-2 py-0.5 text-[11px] font-medium tracking-wide text-moon-300">
           演示模式
         </span>
-        <span>M0 工程底座 · 未开放注册、模型调用与真实支付</span>
+        <span>M1 云端基础 · 模型调用与真实支付未开放</span>
       </div>
     </div>
   );
 }
 
 export function SiteHeader() {
+  const { state } = useAuth();
+  const accountTo = state.status === "authenticated" ? "/settings" : "/login";
+  const accountLabel = state.status === "authenticated" ? state.session.user.displayName : "登录";
+
   return (
     <header className="sticky top-0 z-40 border-b hairline bg-night-950/85 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
@@ -90,10 +97,10 @@ export function SiteHeader() {
         </nav>
 
         <Link
-          to="/chat"
-          className="inline-flex min-h-10 items-center rounded-full border border-moon-400/50 px-4 py-2 text-sm font-medium text-moon-200 transition-colors hover:bg-moon-400/10"
+          to={accountTo}
+          className="inline-flex min-h-10 max-w-[9rem] items-center truncate rounded-full border border-moon-400/50 px-4 py-2 text-sm font-medium text-moon-200 transition-colors hover:bg-moon-400/10"
         >
-          进入演示
+          {accountLabel}
         </Link>
       </div>
     </header>
@@ -143,8 +150,8 @@ export function SiteFooter() {
             <span className="font-display text-lg tracking-[0.16em] text-paper-50">续月记</span>
           </div>
           <p className="mt-4 max-w-md text-sm leading-7 text-mist-300">
-            面向中国成年人的 AI 文本互动、长篇角色扮演与文学创作工具。当前版本是 M0
-            工程底座，页面真实、数据可核对，但模型、注册与支付均未开放。
+            面向中国成年人的 AI 文本互动、长篇角色扮演与文学创作工具。当前版本包含 M1
+            账号与云端存档基础；模型调用与真实支付仍未开放。
           </p>
           <p className="mt-4 text-xs leading-6 text-mist-400">
             运营主体、ICP 备案号与 AI
@@ -161,6 +168,11 @@ export function SiteFooter() {
               </Link>
             </li>
             <li>
+              <Link className="hover:text-moon-300" to="/characters">
+                云端角色
+              </Link>
+            </li>
+            <li>
               <Link className="hover:text-moon-300" to="/wallet">
                 积分与钱包
               </Link>
@@ -172,7 +184,7 @@ export function SiteFooter() {
             </li>
             <li>
               <Link className="hover:text-moon-300" to="/settings">
-                同步与导入导出
+                账号与导入导出
               </Link>
             </li>
           </ul>
@@ -197,7 +209,7 @@ export function SiteFooter() {
       <div className="border-t hairline">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-5 text-xs text-mist-400 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <span>© 2026 续月记 Xuyueji · 演示环境</span>
-          <span>本演示不接收真实用户数据、不调用模型、不开放真实收款。</span>
+          <span>本演示不调用模型、不开放真实收款；账号与故事数据仅用于受控演示。</span>
         </div>
       </div>
     </footer>

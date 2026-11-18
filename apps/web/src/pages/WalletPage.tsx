@@ -51,7 +51,7 @@ export function WalletPage() {
       <PageHeader
         eyebrow="积分 / Wallet"
         title="余额由服务端决定，付款按钮保持关闭。"
-        description="M0 的钱包页展示真实页面、真实禁用状态与计费原则。支付宝商户准入未完成前，页面不会创建订单、不会跳转收银台、也不会接收真实付款。"
+        description="当前钱包页展示真实页面、真实禁用状态与计费原则。支付宝商户准入未完成前，页面不会创建订单、不会跳转收银台、也不会接收真实付款。"
         aside={<StatusPill status={status.tone} label={status.label} />}
       />
 

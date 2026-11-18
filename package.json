@@ -19,6 +19,7 @@
     "test:watch": "vitest",
     "db:generate": "pnpm --filter @xuyueji/api db:generate",
     "db:migrate": "pnpm --filter @xuyueji/api db:migrate",
+    "user:create": "pnpm --filter @xuyueji/api exec tsx src/scripts/create-user.ts",
     "e2e": "playwright test -c apps/web/playwright.config.ts",
     "screenshots": "playwright test -c apps/web/playwright.config.ts --project=desktop screenshots.spec.ts",
     "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm build"

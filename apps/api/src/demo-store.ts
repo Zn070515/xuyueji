@@ -7,7 +7,7 @@ import {
   type PaymentOrder,
   type Wallet,
 } from "@xuyueji/billing";
-import type { CharacterPayloadDto, CharacterVersionResponse } from "@xuyueji/contracts";
+import type { CharacterPayloadDto, DemoCharacterVersionResponse } from "@xuyueji/contracts";
 import {
   addCharacterVersion,
   asCharacterId,
@@ -30,7 +30,7 @@ const demoCreatedAt = "2026-11-18T00:00:00.000Z";
 
 export interface DemoCharacterVersionState {
   readonly character: Character;
-  readonly processedRequests: ReadonlyMap<string, CharacterVersionResponse>;
+  readonly processedRequests: ReadonlyMap<string, DemoCharacterVersionResponse>;
 }
 
 export interface DemoPaymentState {
@@ -100,7 +100,7 @@ export function applyDemoCharacterVersion(
     readonly expectedActiveVersionId: string;
     readonly payload: CharacterPayloadDto;
   },
-): CharacterVersionResponse {
+): DemoCharacterVersionResponse {
   const processed = store.character.processedRequests.get(input.requestId);
   if (processed) {
     return processed;

@@ -10,8 +10,8 @@ import {
 import { useApiMeta } from "../lib/use-api-meta.js";
 
 const GATES = [
-  { gate: "M0", title: "工程底座与支付材料页面", state: "进行中" },
-  { gate: "M1", title: "领域数据模型与云端存档", state: "待开始" },
+  { gate: "M0", title: "工程底座与支付材料页面", state: "已完成" },
+  { gate: "M1", title: "账号、领域数据模型与云端存档", state: "进行中" },
   { gate: "M2", title: "完整文本酒馆引擎", state: "待开始" },
   { gate: "M3", title: "DeepSeek 运行时与积分闭环", state: "待开始" },
   { gate: "M4", title: "酒馆体验、兼容与运营功能", state: "待开始" },
@@ -20,12 +20,12 @@ const GATES = [
 
 const FAQ = [
   {
-    q: "现在能注册或充值吗？",
-    a: "不能。公开注册、模型调用与真实支付均未启用。页面上的充值按钮是明确禁用的，套餐数字只是展示草案。",
+    q: "现在能注册、保存云端或充值吗？",
+    a: "账号登录、角色与会话云端存档已接入（M1）。公开注册取决于部署配置 PUBLIC_SIGNUP_ENABLED；真实支付仍未启用，充值按钮全部禁用，套餐数字只是展示草案。",
   },
   {
     q: "聊天内容会发给 DeepSeek 吗？",
-    a: "不会。M0 的聊天页在浏览器本地生成演示回复，状态提示会标注“未调用模型”。正式接入在 M3，并且安全级别由服务端强制。",
+    a: "不会。当前聊天页在浏览器本地生成演示回复，状态提示会标注“未调用模型”。正式接入在 M3，并且安全级别由服务端强制。",
   },
   {
     q: "我的草稿存在哪里？",
@@ -118,7 +118,7 @@ export function HelpPage() {
         <section className="glass-card rounded-3xl p-5 sm:p-6">
           <div className="flex items-center justify-between gap-3">
             <Eyebrow>交付 Gate</Eyebrow>
-            <GateBadge gate="M0 进行中" tone="ready" />
+            <GateBadge gate="M1 进行中" tone="ready" />
           </div>
           <ol className="mt-4 space-y-3">
             {GATES.map((gate) => (

@@ -69,9 +69,9 @@ export const PLANNED_FEATURES: readonly PlannedFeature[] = [
   },
   {
     title: "跨设备云端存档",
-    description: "PostgreSQL 权威存档，Dexie 缓存与离线草稿。",
+    description: "PostgreSQL 权威存档，Dexie 缓存、离线草稿与 outbox。",
     gate: "M1",
-    state: "计划中",
+    state: "已建立底座",
   },
   {
     title: "透明积分账本",
@@ -81,9 +81,9 @@ export const PLANNED_FEATURES: readonly PlannedFeature[] = [
   },
   {
     title: "兼容导入导出",
-    description: "角色卡、世界书、预设、JSONL 与完整 ZIP 可带走。",
+    description: "JSON 导入导出已接入；角色卡、世界书与完整 ZIP 在 M1/M2 补齐。",
     gate: "M1 / M2",
-    state: "计划中",
+    state: "已建立底座",
   },
 ];
 
@@ -132,13 +132,13 @@ export const CAPABILITY_NOTES = [
     detail: "支付宝商户准入未完成；充值按钮禁用，不接收真实付款。",
   },
   {
-    label: "公开注册",
-    value: "未启用",
-    detail: "M1 实现账号、会话与对象级授权后才会开放。",
+    label: "账号与注册",
+    value: "受控",
+    detail: "M1 邮箱密码登录与会话已接入；公开注册由 PUBLIC_SIGNUP_ENABLED 控制。",
   },
   {
-    label: "演示数据",
-    value: "进程内",
-    detail: "API 重启即清空；不是用户存档，也不会进入任何生产库。",
+    label: "云端存档",
+    value: "M1 已接入",
+    detail: "角色、会话与消息图写入 PostgreSQL；钱包余额仍是进程内演示。",
   },
 ] as const;

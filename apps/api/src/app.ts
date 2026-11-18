@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
@@ -6,11 +7,20 @@ import { DomainError, type DomainErrorCode } from "@xuyueji/domain";
 import Fastify, { type FastifyInstance } from "fastify";
 import { ZodError } from "zod";
 
+import { AuthError } from "./auth/errors.js";
+import { authRoutes } from "./auth/routes.js";
+import { AuthService } from "./auth/service.js";
 import type { AppConfig } from "./config.js";
+import { createDatabase, type DatabaseHandle } from "./db/client.js";
 import { createDemoStore } from "./demo-store.js";
+import { characterRoutes } from "./routes/characters.js";
+import { conversationRoutes } from "./routes/conversations.js";
+import { dataRoutes } from "./routes/data.js";
 import { demoRoutes } from "./routes/demo.js";
 import { healthRoutes } from "./routes/health.js";
 import { metaRoutes } from "./routes/meta.js";
+import { mutationRoutes } from "./routes/mutations.js";
+import { syncRoutes } from "./routes/sync.js";
 
 const STATUS_BY_CODE: Readonly<Record<DomainErrorCode, number>> = {
   VERSION_CONFLICT: 409,
@@ -25,6 +35,7 @@ const STATUS_BY_CODE: Readonly<Record<DomainErrorCode, number>> = {
 export interface BuildAppOptions {
   readonly config: AppConfig;
   readonly logger?: boolean;
+  readonly database?: DatabaseHandle;
 }
 
 export async function buildApp(options: BuildAppOptions): Promise<FastifyInstance> {
@@ -39,6 +50,9 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   }
 
   const store = createDemoStore(config.mockPaymentSecret);
+  const database =
+    options.database ?? (config.databaseUrl ? createDatabase(config.databaseUrl) : null);
+  const ownsDatabase = options.database === undefined && database !== null;
 
   const app = Fastify({
     logger: options.logger
@@ -63,6 +77,9 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     genReqId: () => randomUUID(),
     trustProxy: config.trustProxy,
   });
+
+  await app.register(cookie);
+  app.decorateRequest("auth", null);
 
   await app.register(helmet, {
     contentSecurityPolicy: false,
@@ -100,6 +117,17 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
           message: "Request body or parameters did not match the API contract.",
           requestId: request.id,
           details: { issues: error.issues },
+        },
+      });
+    }
+
+    if (error instanceof AuthError) {
+      app.log.warn({ reqId: request.id, code: error.code }, "auth request rejected");
+      return reply.code(error.statusCode).send({
+        error: {
+          code: error.code,
+          message: error.message,
+          requestId: request.id,
         },
       });
     }
@@ -144,8 +172,27 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   // Register routes after the root error/not-found handlers so child plugin
   // contexts inherit them. Fastify captures the handler context at registration.
   await app.register(healthRoutes(config));
-  await app.register(metaRoutes(config), { prefix: "/api" });
+  await app.register(metaRoutes(config, database !== null), { prefix: "/api" });
   await app.register(demoRoutes(config, store), { prefix: "/api/demo" });
+
+  if (database) {
+    const auth = new AuthService(database.db, config);
+    await app.register(authRoutes({ config, auth }), { prefix: "/api/auth" });
+    await app.register(characterRoutes({ db: database.db, auth }), {
+      prefix: "/api/characters",
+    });
+    await app.register(conversationRoutes({ db: database.db, auth }), {
+      prefix: "/api/conversations",
+    });
+    await app.register(syncRoutes({ db: database.db, auth }), { prefix: "/api/sync" });
+    await app.register(mutationRoutes({ db: database.db, auth }), { prefix: "/api" });
+    await app.register(dataRoutes({ db: database.db, auth }), { prefix: "/api" });
+    app.addHook("onClose", async () => {
+      if (ownsDatabase) {
+        await database.pool.end();
+      }
+    });
+  }
 
   return app;
 }

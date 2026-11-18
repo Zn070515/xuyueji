@@ -6,7 +6,7 @@ const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 
 export default defineConfig({
   testDir: "./e2e",
-  outputDir: "../../../artifacts/playwright",
+  outputDir: "../../artifacts/playwright",
   fullyParallel: false,
   workers: 1,
   timeout: 45_000,
@@ -28,6 +28,11 @@ export default defineConfig({
         DEMO_MODE: "true",
         API_HOST: "127.0.0.1",
         API_PORT: "3000",
+        DATABASE_URL:
+          process.env.DATABASE_URL ?? "postgres://xuyueji:xuyueji_dev@127.0.0.1:5432/xuyueji",
+        PUBLIC_SIGNUP_ENABLED: "true",
+        AUTH_SIGNUP_RATE_LIMIT_MAX: "1000",
+        AUTH_LOGIN_RATE_LIMIT_MAX: "1000",
       },
     },
     {

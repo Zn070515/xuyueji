@@ -65,16 +65,16 @@ export function HomePage() {
             </div>
 
             <p className="mt-5 max-w-2xl text-xs leading-6 text-mist-400">
-              当前为 M0 演示环境：页面由真实代码渲染，聊天为本地演示，
-              <span className="text-moon-300">不调用 DeepSeek、不开放注册、不接收真实付款</span>。
+              当前为 M1 演示环境：账号与云端存档已接入，聊天仍为本地演示，
+              <span className="text-moon-300">不调用 DeepSeek、不开放真实付款</span>。
             </p>
           </div>
 
           <aside className="glass-card relative rounded-3xl p-6 sm:p-8">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-mist-400">M0 运行状态</p>
-                <p className="mt-2 font-display text-2xl text-paper-50">工程底座已建立</p>
+                <p className="text-xs uppercase tracking-[0.24em] text-mist-400">M1 运行状态</p>
+                <p className="mt-2 font-display text-2xl text-paper-50">账号与云端存档已接入</p>
               </div>
               <span className="rounded-full border border-moon-400/40 px-3 py-1 text-[11px] text-moon-200">
                 demo
@@ -132,7 +132,7 @@ export function HomePage() {
               实现；未实现的模块不会用静态占位页冒充完成。
             </p>
           </div>
-          <GateBadge gate="M0 · 进行中" tone="ready" />
+          <GateBadge gate="M1 · 进行中" tone="ready" />
         </div>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -254,13 +254,13 @@ export function HomePage() {
               </div>
             </div>
             <div className="flex flex-col justify-center gap-3 bg-night-900 p-8 text-mist-200 sm:p-10">
-              <p className="font-display text-xl text-moon-300">M0 交付清单</p>
+              <p className="font-display text-xl text-moon-300">M1 交付清单</p>
               {[
-                "pnpm / TS strict monorepo",
-                "Fastify + PostgreSQL 迁移",
-                "领域不变量：CAS / Swipe / 支付幂等",
-                "React 页面与 Dexie 草稿边界",
-                "Playwright 真实截图",
+                "邮箱密码登录与 HttpOnly 会话",
+                "角色版本 CAS 与归属隔离",
+                "消息图：Swipe / 分支 / tombstone",
+                "2,500 条消息分页与同步游标",
+                "JSON 导出恢复 + Dexie outbox",
               ].map((item) => (
                 <p key={item} className="flex items-center gap-3 text-sm">
                   <span className="h-1.5 w-1.5 rounded-full bg-moon-400" aria-hidden="true" />

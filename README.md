@@ -3,8 +3,9 @@
 面向中国大陆成年用户的完整文本 AI 酒馆：角色卡、世界书、Persona、预设、宏、正则、群聊、
 分支、长期记忆、跨设备云端存档与积分账本。
 
-> **当前状态：M0 工程底座（演示模式）**。页面真实、数据库迁移可运行、领域不变量有测试；
-> 公开注册、DeepSeek 模型调用、真实支付与公开发布均未启用。kickoff 文档不是已完成的软件。
+> **当前状态：M1 云端基础（演示模式）**。账号会话、角色版本 CAS、会话消息图、2,500 条消息分页、
+> 增量同步游标、JSON 导出/恢复与 Dexie outbox 已接入；DeepSeek 模型调用、真实支付与公开发布仍未启用。
+> kickoff 文档不是已完成的软件。
 
 ## 文档基线
 
@@ -13,7 +14,7 @@
 ENGINE_SPEC.md → SYNC_STORAGE.md → BILLING_GENERATION.md → TEST_STRATEGY.md → DELIVERY_PLAN.md`。
 
 M0 的架构偏差与风险清单见 [`docs/adr/0005-m0-implementation.md`](docs/adr/0005-m0-implementation.md)；
-实际命令结果与未验证事项见 [`M0_REPORT.md`](M0_REPORT.md)。
+实际命令结果与未验证事项见 [`M0_REPORT.md`](M0_REPORT.md) 与 [`M1_REPORT.md`](M1_REPORT.md)。
 
 ## 快速开始
 
@@ -31,17 +32,33 @@ pnpm dev            # API :3000 + Web :5173
 
 - 聊天页只在浏览器本地生成演示回复，**不会调用 DeepSeek**。
 - 钱包页的充值按钮全部禁用，**不会创建订单或收款**。
-- API 演示数据在进程内，重启即清空。
+- 账号、角色、会话与消息图可写入 PostgreSQL；公开注册由 `PUBLIC_SIGNUP_ENABLED` 控制。
+- 钱包余额与支付演示数据仍在进程内，重启即清空。
+
+公开注册默认关闭。本地创建一个受控账号：
+
+```bash
+DATABASE_URL=postgres://xuyueji:xuyueji_dev@127.0.0.1:5432/xuyueji \
+XYJ_USER_EMAIL=demo@example.com \
+XYJ_USER_PASSWORD='change-this-to-a-long-password' \
+XYJ_USER_NAME='演示用户' \
+pnpm user:create
+```
+
+或在 `.env` 中临时设置 `PUBLIC_SIGNUP_ENABLED=true`，通过 `/register` 注册。
 
 ## 验证命令
 
 ```bash
 pnpm typecheck                  # TypeScript strict（TS 7）
 pnpm lint                       # Biome
-pnpm test                       # 领域 / 账单 / API 契约测试
+pnpm test                       # 领域 / 账单 / API / outbox 测试
 pnpm build                      # Web (Vite) + API（tsup 单文件产物）
-pnpm e2e                        # Playwright 桌面 + 手机
+pnpm e2e                        # Playwright 桌面 + 手机（含注册/云端角色/导出）
 pnpm screenshots                # 首页 / 钱包 / 聊天三张真实截图
+
+# 含 PostgreSQL 集成与 M1 端到端契约
+DATABASE_URL=postgres://xuyueji:xuyueji_dev@127.0.0.1:5432/xuyueji pnpm test
 
 DATABASE_URL=postgres://xuyueji:xuyueji_dev@127.0.0.1:5432/xuyueji \
   pnpm db:migrate
@@ -69,15 +86,22 @@ scripts                 迁移、调试与运维脚本
 docs                    kickoff 文档与 ADR
 ```
 
-## 已落实的硬边界（M0）
+## 已落实的硬边界（M0 + M1）
 
-- **云端权威**：PostgreSQL 是权威存储；浏览器 Dexie 只保存草稿，不是存档。
-- **消息图不可变**：Swipe 是同一父节点下的兄弟候选，编辑旧消息生成新分支，不覆盖历史。
+- **云端权威**：PostgreSQL 是权威存储；浏览器 Dexie 只保存草稿与 outbox，不是存档。
+- **认证与归属**：scrypt 密码哈希、服务端会话、HttpOnly/SameSite Cookie；所有实体查询按
+  `owner_user_id` 过滤，过期/撤销会话返回 401。
+- **消息图不可变**：Swipe 是同一父节点下的兄弟候选，编辑旧消息生成新分支，不覆盖历史；
+  `client_request_id` 唯一索引保证重试不重复追加消息。
 - **角色版本 CAS**：过期 `expectedActiveVersionId` 返回 409，不静默覆盖另一台设备的修改。
+- **同步契约**：`sync_changes` 游标、opaque cursor、200 条分页；Dexie outbox 用 `opId`
+  幂等，失败 5 次进入 failed。
+- **导出可带走**：JSON 导出/导入包含角色版本、会话、分支与消息图，不含密码、会话令牌或支付凭据。
 - **支付幂等**：同一商户订单与外部交易最多入账一次；重复通知/重试不重复加积分。
 - **数据库约束**：钱包非负、账本 `unique_key`、订单号、run 的 `client_request_id` 唯一、
   `cost_points <= cap_points` 全部落在 PostgreSQL 约束上。
-- **服务端闸门**：`DEMO_MODE` 默认 true；支付与模型必须同时满足生产模式 + 显式开关才启用。
+- **服务端闸门**：`DEMO_MODE` 默认 true；M0/M1 在 `DEMO_MODE=false` 时拒绝启动；支付与模型
+  尚未实现，不能通过配置位绕过。
 
 ## 部署（未执行）
 
@@ -93,8 +117,9 @@ HTTP_PORT=18080 docker compose up -d --wait
 ```
 
 正式上线前仍需完成 ICP/AI 服务相关手续、支付宝商户准入、价格与隐私审核。仓库中的
-`DEMO_MODE`、mock 支付与演示数据不代表任何审批结果。
+`DEMO_MODE`、mock 支付与演示数据不代表任何审批结果。生产 HTTPS 部署时应设置
+`COOKIE_SECURE=true`；公开注册默认关闭，需显式设置 `PUBLIC_SIGNUP_ENABLED=true`。
 
 ## 许可证
 
-私有商业项目，未授予开源许可。文档中的第三方项目与接口按其官方许可证使用。
+商业项目，未授予开源许可；公开仓库不等于开源授权。文档中的第三方项目与接口按其官方许可证使用。

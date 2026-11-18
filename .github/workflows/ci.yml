@@ -66,11 +66,28 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm db:migrate
-      - run: pnpm vitest run apps/api/src/db/schema.test.ts
+      - run: pnpm test
 
   e2e:
     name: Playwright smoke + screenshots
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: xuyueji
+          POSTGRES_PASSWORD: xuyueji_dev
+          POSTGRES_DB: xuyueji
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U xuyueji -d xuyueji"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgres://xuyueji:xuyueji_dev@127.0.0.1:5432/xuyueji
+      PUBLIC_SIGNUP_ENABLED: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -82,6 +99,7 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm db:migrate
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm e2e
       - uses: actions/upload-artifact@v4

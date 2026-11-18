@@ -12,6 +12,11 @@ export interface AppConfig {
   readonly rateLimitMax: number;
   readonly corsOrigins: readonly string[];
   readonly trustProxy: boolean;
+  readonly signupEnabled: boolean;
+  readonly sessionTtlDays: number;
+  readonly cookieSecure: boolean;
+  readonly signupRateLimitMax: number;
+  readonly loginRateLimitMax: number;
 }
 
 const DEV_MOCK_SECRET = "xuyueji-dev-only-mock-secret";
@@ -36,11 +41,7 @@ function parseOrigins(value: string | undefined): readonly string[] {
 }
 
 function parseRateLimit(value: string | undefined): number {
-  const parsed = Number(value ?? "120");
-  if (!Number.isSafeInteger(parsed) || parsed < 1) {
-    throw new Error(`RATE_LIMIT_MAX must be a positive integer, received: ${value}`);
-  }
-  return parsed;
+  return parsePositiveInteger(value, 120, "RATE_LIMIT_MAX");
 }
 
 /**
@@ -67,5 +68,26 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     rateLimitMax: parseRateLimit(env.RATE_LIMIT_MAX),
     corsOrigins: parseOrigins(env.CORS_ORIGINS),
     trustProxy: env.TRUST_PROXY === "true",
+    signupEnabled: env.PUBLIC_SIGNUP_ENABLED === "true",
+    sessionTtlDays: parsePositiveInteger(env.SESSION_TTL_DAYS, 7, "SESSION_TTL_DAYS"),
+    cookieSecure: env.COOKIE_SECURE === "true",
+    signupRateLimitMax: parsePositiveInteger(
+      env.AUTH_SIGNUP_RATE_LIMIT_MAX,
+      5,
+      "AUTH_SIGNUP_RATE_LIMIT_MAX",
+    ),
+    loginRateLimitMax: parsePositiveInteger(
+      env.AUTH_LOGIN_RATE_LIMIT_MAX,
+      10,
+      "AUTH_LOGIN_RATE_LIMIT_MAX",
+    ),
   };
+}
+
+function parsePositiveInteger(value: string | undefined, fallback: number, label: string): number {
+  const parsed = Number(value ?? String(fallback));
+  if (!Number.isSafeInteger(parsed) || parsed < 1) {
+    throw new Error(`${label} must be a positive integer, received: ${value}`);
+  }
+  return parsed;
 }

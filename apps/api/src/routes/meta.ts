@@ -4,7 +4,7 @@ import type { FastifyPluginAsync } from "fastify";
 import type { AppConfig } from "../config.js";
 import { APP_VERSION } from "../version.js";
 
-function capabilities(config: AppConfig): readonly Capability[] {
+function capabilities(config: AppConfig, cloudEnabled: boolean): readonly Capability[] {
   return [
     {
       key: "chat",
@@ -32,9 +32,11 @@ function capabilities(config: AppConfig): readonly Capability[] {
     },
     {
       key: "cloud-sync",
-      enabled: false,
+      enabled: cloudEnabled,
       gate: "M1",
-      note: "PostgreSQL 权威存档与 Dexie 同步尚未接入。",
+      note: cloudEnabled
+        ? "PostgreSQL 权威存档、增量游标与 Dexie outbox 已接入；实时推送与多端合并仍待完善。"
+        : "PostgreSQL 权威存档与 Dexie 同步尚未接入。",
     },
     {
       key: "billing",
@@ -44,20 +46,24 @@ function capabilities(config: AppConfig): readonly Capability[] {
     },
     {
       key: "auth",
-      enabled: false,
+      enabled: cloudEnabled,
       gate: "M1",
-      note: "公开注册与登录未启用。",
+      note: cloudEnabled
+        ? `邮箱密码登录与会话已接入；公开注册${config.signupEnabled ? "已开启" : "仍由运营者控制"}。`
+        : "公开注册与登录未启用。",
     },
     {
       key: "export",
-      enabled: false,
+      enabled: cloudEnabled,
       gate: "M1",
-      note: "完整 ZIP 导出与导入尚未实现。",
+      note: cloudEnabled
+        ? "JSON 导出/导入已接入；完整 ZIP 与附件将在后续 Gate 补齐。"
+        : "完整 ZIP 导出与导入尚未实现。",
     },
   ];
 }
 
-export function metaRoutes(config: AppConfig): FastifyPluginAsync {
+export function metaRoutes(config: AppConfig, cloudEnabled: boolean): FastifyPluginAsync {
   return async (app) => {
     app.get(
       "/meta",
@@ -67,9 +73,10 @@ export function metaRoutes(config: AppConfig): FastifyPluginAsync {
         demo: true,
         paymentsEnabled: false,
         aiEnabled: false,
-        reason:
-          "M0 工程底座：真实页面、领域不变量与数据库迁移已运行；公开注册、模型调用与真实支付未启用。",
-        capabilities: [...capabilities(config)],
+        reason: cloudEnabled
+          ? "M1 云端基础：账号会话、角色版本 CAS、会话消息图、分页、同步游标与 JSON 导出/导入已接入；模型调用与真实支付未启用。"
+          : "M0 工程底座：真实页面、领域不变量与数据库迁移已运行；公开注册、模型调用与真实支付未启用。",
+        capabilities: [...capabilities(config, cloudEnabled)],
         serverTime: new Date().toISOString(),
       }),
     );

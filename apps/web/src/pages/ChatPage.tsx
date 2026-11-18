@@ -233,7 +233,7 @@ export function ChatPage() {
         eyebrow="聊天 / Chat"
         title="把对话续下去，但先看清楚边界。"
         description="这是一个真实可交互的页面骨架：输入、发送与草稿落盘都在本机完成。它不会调用 DeepSeek，也不会保存到云端；右侧的 Prompt、世界书与记忆面板是明确的界面示意。"
-        aside={<GateBadge gate="M0 骨架 · M3 接入模型" tone="ready" />}
+        aside={<GateBadge gate="M1 页面 · M3 接入模型" tone="ready" />}
       />
 
       <div className="grid gap-5 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_360px]">

@@ -1,0 +1,2 @@
+ALTER TABLE "conversations" ADD COLUMN "active_branch_id" uuid;--> statement-breakpoint
+ALTER TABLE "conversations" ADD CONSTRAINT "conversations_mode_valid" CHECK ("conversations"."mode" in ('solo', 'group'));

@@ -12,13 +12,33 @@ export interface LocalDraft {
   readonly updatedAt: string;
 }
 
+export type OutboxState = "pending" | "syncing" | "accepted" | "conflict" | "failed";
+
+export interface OutboxItem {
+  readonly id: string;
+  readonly opId: string;
+  readonly entityType: string;
+  readonly entityId: string;
+  readonly action: "upsert" | "delete";
+  readonly expectedRevision: number | null;
+  readonly payload: unknown;
+  readonly createdAt: string;
+  readonly attempts: number;
+  readonly state: OutboxState;
+  readonly lastError: string | null;
+}
+
 class XuyuejiLocalDatabase extends Dexie {
   drafts!: EntityTable<LocalDraft, "id">;
+  outbox!: EntityTable<OutboxItem, "id">;
 
   constructor() {
     super("xuyueji-local");
     this.version(1).stores({
       drafts: "id, conversationId, updatedAt",
+    });
+    this.version(2).stores({
+      outbox: "id, opId, state, createdAt",
     });
   }
 }

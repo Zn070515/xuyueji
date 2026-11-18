@@ -36,7 +36,7 @@ test.describe("真实渲染页面截图", () => {
     test.skip(testInfo.project.name !== "desktop", "桌面截图仅使用桌面项目");
     await page.goto("/");
     await expect(page.getByRole("heading", { name: /续月记/ }).first()).toBeVisible();
-    await expect(page.getByText(/M0 演示环境/).first()).toBeVisible();
+    await expect(page.getByText(/M1 演示环境/).first()).toBeVisible();
     await stabilizeFullPage(page);
     await page.screenshot({
       path: path.join(screenshotDir, "home.png"),

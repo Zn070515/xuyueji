@@ -1,7 +1,7 @@
 import { confirmPaymentCallback } from "@xuyueji/billing";
 import {
-  type CharacterVersionResponse,
   createCharacterVersionRequestSchema,
+  type DemoCharacterVersionResponse,
   type PaymentCallbackResponse,
   paymentCallbackRequestSchema,
 } from "@xuyueji/contracts";
@@ -51,7 +51,7 @@ export function demoRoutes(config: AppConfig, store: DemoStore): FastifyPluginAs
         });
       }
 
-      const response: CharacterVersionResponse = applyDemoCharacterVersion(store, {
+      const response: DemoCharacterVersionResponse = applyDemoCharacterVersion(store, {
         characterId: params.characterId,
         requestId: body.requestId,
         expectedActiveVersionId: body.expectedActiveVersionId,
