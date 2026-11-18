@@ -112,6 +112,15 @@ test("register, save a cloud character version and export", async ({ page }, tes
   const cardDownload = await cardDownloadPromise;
   expect(cardDownload.suggestedFilename()).toMatch(/character-.*-v2\.json$/);
 
+  await page.goto("/chat");
+  await page.getByRole("button", { name: "新建云端会话" }).click();
+  await page.locator("#cloud-chat-input").fill("Prompt 预览测试");
+  await page.getByRole("button", { name: "发送到云端" }).click();
+  await expect(page.getByText("Prompt 预览测试")).toBeVisible();
+  await page.getByRole("button", { name: "生成 Prompt 预览" }).click();
+  await expect(page.getByText(/digest/)).toBeVisible();
+  await expect(page.getByText(/character ·/)).toBeVisible();
+
   await page.goto("/settings");
   await expect(page.getByRole("heading", { name: /待同步操作/ })).toBeVisible();
   const downloadPromise = page.waitForEvent("download");
