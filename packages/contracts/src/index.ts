@@ -544,7 +544,12 @@ export const lorePositionSchema = z.enum([
   "at_depth",
 ]);
 
+export const loreMatchModeSchema = z.enum(["keyword", "regex"]);
+
 export const lorebookRuleDtoSchema = z.object({
+  matchMode: loreMatchModeSchema,
+  regexPattern: z.string(),
+  regexFlags: z.string(),
   keys: z.array(z.string()),
   secondaryKeys: z.array(z.string()),
   caseSensitive: z.boolean(),
@@ -599,6 +604,9 @@ export const lorebookEntryInputSchema = z
   .object({
     entryKey: z.string().min(1).max(120).optional(),
     content: z.string().min(1).max(100_000),
+    matchMode: loreMatchModeSchema.default("keyword"),
+    regexPattern: z.string().max(2_000).default(""),
+    regexFlags: z.string().max(10).default(""),
     keys: z.array(z.string().min(1).max(200)).max(100).default([]),
     secondaryKeys: z.array(z.string().min(1).max(200)).max(100).default([]),
     caseSensitive: z.boolean().default(false),

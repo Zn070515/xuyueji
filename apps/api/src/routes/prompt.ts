@@ -34,6 +34,9 @@ const PLATFORM_POLICY =
 const CLOSING_CONSTRAINTS = "保持角色与设定一致，只输出叙事内容。";
 
 const ruleSchema = z.object({
+  matchMode: z.enum(["keyword", "regex"]).optional(),
+  regexPattern: z.string().max(2_000).optional(),
+  regexFlags: z.string().max(10).optional(),
   keys: z.array(z.string().min(1).max(200)).max(100).optional(),
   secondaryKeys: z.array(z.string().min(1).max(200)).max(100).optional(),
   caseSensitive: z.boolean().optional(),
@@ -65,6 +68,9 @@ function toWorldInfoEntry(row: typeof loreEntries.$inferSelect): WorldInfoEntry 
     content: row.content,
     enabled: row.enabled,
     constant: rule.constant ?? false,
+    matchMode: rule.matchMode ?? "keyword",
+    regexPattern: rule.regexPattern ?? "",
+    regexFlags: rule.regexFlags ?? "",
     keys: rule.keys ?? [],
     secondaryKeys: rule.secondaryKeys ?? [],
     caseSensitive: rule.caseSensitive ?? false,

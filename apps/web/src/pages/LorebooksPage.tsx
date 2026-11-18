@@ -22,6 +22,9 @@ import {
 interface EntryForm {
   entryKey: string;
   content: string;
+  matchMode: "keyword" | "regex";
+  regexPattern: string;
+  regexFlags: string;
   keysText: string;
   secondaryKeysText: string;
   constant: boolean;
@@ -36,6 +39,9 @@ interface EntryForm {
 const EMPTY_FORM: EntryForm = {
   entryKey: "",
   content: "",
+  matchMode: "keyword",
+  regexPattern: "",
+  regexFlags: "",
   keysText: "",
   secondaryKeysText: "",
   constant: false,
@@ -66,6 +72,9 @@ function entryToForm(entry: LorebookEntryDto): EntryForm {
   return {
     entryKey: entry.entryKey,
     content: entry.content,
+    matchMode: entry.rule.matchMode,
+    regexPattern: entry.rule.regexPattern,
+    regexFlags: entry.rule.regexFlags,
     keysText: entry.rule.keys.join(", "),
     secondaryKeysText: entry.rule.secondaryKeys.join(", "),
     constant: entry.rule.constant,
@@ -82,6 +91,9 @@ function formToInput(form: EntryForm): LorebookEntryInput {
   return {
     ...(form.entryKey.trim() ? { entryKey: form.entryKey.trim() } : {}),
     content: form.content.trim(),
+    matchMode: form.matchMode,
+    regexPattern: form.regexPattern,
+    regexFlags: form.regexFlags,
     keys: splitKeys(form.keysText),
     secondaryKeys: splitKeys(form.secondaryKeysText),
     caseSensitive: false,
@@ -389,7 +401,9 @@ export function LorebooksPage() {
                               <p className="mt-1 text-[11px] text-slate-500">
                                 {entry.rule.constant
                                   ? "常驻"
-                                  : `关键词：${entry.rule.keys.join("、") || "无"}`}
+                                  : entry.rule.matchMode === "regex"
+                                    ? `正则：${entry.rule.regexPattern || "无"}`
+                                    : `关键词：${entry.rule.keys.join("、") || "无"}`}
                                 {" · "}
                                 {entry.rule.recursive ? "递归" : "不递归"}
                                 {" · "}
@@ -459,6 +473,62 @@ export function LorebooksPage() {
                             className="mt-1 w-full resize-y rounded-xl border border-slate-300 px-3 py-2 text-sm leading-6 text-night-900"
                           />
                         </div>
+                        <div>
+                          <label htmlFor="lore-match-mode" className="text-xs text-slate-500">
+                            触发方式
+                          </label>
+                          <select
+                            id="lore-match-mode"
+                            value={form.matchMode}
+                            onChange={(event) =>
+                              setForm((current) => ({
+                                ...current,
+                                matchMode: event.target.value as "keyword" | "regex",
+                              }))
+                            }
+                            className="mt-1 min-h-10 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-night-900"
+                          >
+                            <option value="keyword">关键词</option>
+                            <option value="regex">正则（安全子集）</option>
+                          </select>
+                        </div>
+                        {form.matchMode === "regex" ? (
+                          <div>
+                            <label htmlFor="lore-regex" className="text-xs text-slate-500">
+                              正则表达式与标志
+                            </label>
+                            <div className="mt-1 flex gap-2">
+                              <input
+                                id="lore-regex"
+                                value={form.regexPattern}
+                                onChange={(event) =>
+                                  setForm((current) => ({
+                                    ...current,
+                                    regexPattern: event.target.value,
+                                  }))
+                                }
+                                spellCheck={false}
+                                placeholder="雨夜|铜灯"
+                                className="min-h-10 min-w-0 flex-1 rounded-xl border border-slate-300 px-3 py-2 font-mono text-sm text-night-900"
+                              />
+                              <input
+                                id="lore-regex-flags"
+                                aria-label="正则标志"
+                                value={form.regexFlags}
+                                onChange={(event) =>
+                                  setForm((current) => ({
+                                    ...current,
+                                    regexFlags: event.target.value,
+                                  }))
+                                }
+                                maxLength={10}
+                                spellCheck={false}
+                                placeholder="ims"
+                                className="w-20 rounded-xl border border-slate-300 px-2 py-2 font-mono text-sm text-night-900"
+                              />
+                            </div>
+                          </div>
+                        ) : null}
                         <div>
                           <label htmlFor="lore-keys" className="text-xs text-slate-500">
                             主关键词（逗号分隔）

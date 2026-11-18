@@ -101,6 +101,53 @@ test("world info entry affects the prompt preview", async ({ page }, testInfo) =
   await expect(page.getByText("雨夜书店会亮起铜灯。")).toBeVisible();
 });
 
+test("world info entry can trigger on a safe regex", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "正则世界书流程只需在桌面项目跑一次");
+
+  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const email = `lore-regex-${suffix}@example.com`;
+  const password = "correct horse battery staple";
+
+  await page.goto("/register");
+  await page.getByLabel("显示名称").fill("正则世界书用户");
+  await page.getByLabel("邮箱").fill(email);
+  await page.getByLabel(/密码（至少 12 位）/).fill(password);
+  await page.getByLabel(/我确认已年满/).check();
+  await page.getByRole("button", { name: "创建账号" }).click();
+  await expect(page).toHaveURL(/\/settings$/);
+
+  await page.goto("/characters");
+  await page.locator("#character-name").fill("正则世界书角色");
+  await page.locator("#character-description").fill("用于正则触发预览");
+  await page.getByRole("button", { name: "创建并保存到云端" }).click();
+  await expect(page.getByRole("heading", { name: "正则世界书角色" })).toBeVisible();
+
+  await page.goto("/lorebooks");
+  await page.locator("#lorebook-title").fill("月光档案");
+  await page.getByRole("button", { name: "创建" }).click();
+  await expect(page.getByRole("heading", { name: "月光档案" })).toBeVisible();
+
+  await page.getByRole("button", { name: "新建条目" }).click();
+  await page.locator("#lore-content").fill("月光会显影旧字。");
+  await page.locator("#lore-match-mode").selectOption("regex");
+  await page.locator("#lore-regex").fill("月光|铜灯");
+  await page.getByRole("button", { name: "保存条目" }).click();
+  await expect(page.getByText("条目已创建。")).toBeVisible();
+  await expect(page.getByText("正则：月光|铜灯")).toBeVisible();
+
+  await page.goto("/chat");
+  await page.getByRole("button", { name: "新建云端会话" }).click();
+  await page.locator("#cloud-chat-input").fill("月光落在柜台上。");
+  await page.getByRole("button", { name: "发送到云端" }).click();
+  await expect(page.getByText("月光落在柜台上。")).toBeVisible();
+
+  await page.getByRole("checkbox", { name: "月光档案" }).check();
+  await page.getByRole("button", { name: "生成 Prompt 预览" }).click();
+  await expect(page.getByText(/世界书命中\s*1/)).toBeVisible();
+  await page.getByText("查看 systemPrompt").click();
+  await expect(page.getByText("月光会显影旧字。")).toBeVisible();
+});
+
 test("persona is selectable in the prompt preview", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "Persona 流程只需在桌面项目跑一次");
 
