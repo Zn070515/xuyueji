@@ -109,7 +109,7 @@ export function WalletPage() {
           <section id="packages" className="glass-card rounded-3xl p-5 sm:p-6">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <Eyebrow>充值套餐</Eyebrow>
+                <Eyebrow>续月记 · 充值套餐</Eyebrow>
                 <h2 className="mt-2 font-display text-2xl text-paper-50">草案展示</h2>
               </div>
               <GateBadge gate="M3 前不收款" />
