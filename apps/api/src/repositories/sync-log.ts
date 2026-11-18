@@ -5,6 +5,7 @@ export type SyncEntityType =
   | "character"
   | "persona"
   | "lorebook"
+  | "lore_entry"
   | "preset"
   | "regex_rule"
   | "memory_item"

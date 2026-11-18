@@ -2,6 +2,7 @@ import type {
   CharacterSummaryDto,
   ConversationDetail,
   ConversationSummaryDto,
+  LorebookSummaryDto,
   MessageDto,
   PromptPreviewResponse,
 } from "@xuyueji/contracts";
@@ -17,6 +18,7 @@ import {
   listMessages,
 } from "../lib/conversations-api.js";
 import { ApiError } from "../lib/http.js";
+import { listLorebooks } from "../lib/lorebooks-api.js";
 import { previewPrompt } from "../lib/prompt-api.js";
 import { DemoDataNote, GateBadge, PageHeader } from "./Primitives.js";
 
@@ -96,6 +98,8 @@ export function CloudChat() {
   const [notice, setNotice] = useState<string | null>(null);
   const [characters, setCharacters] = useState<CharacterSummaryDto[]>([]);
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
+  const [lorebooks, setLorebooks] = useState<LorebookSummaryDto[]>([]);
+  const [selectedLorebookIds, setSelectedLorebookIds] = useState<string[]>([]);
   const [promptPreview, setPromptPreview] = useState<PromptPreviewResponse | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -181,6 +185,15 @@ export function CloudChat() {
       })
       .catch(() => {
         // The chat still works without a character; preview stays disabled.
+      });
+    listLorebooks()
+      .then((result) => {
+        if (active) {
+          setLorebooks(result.lorebooks);
+        }
+      })
+      .catch(() => {
+        // World info is optional for the preview.
       });
     return () => {
       active = false;
@@ -325,6 +338,7 @@ export function CloudChat() {
         branchId: branch.id,
         characterId: selectedCharacterId,
         userInput: input,
+        ...(selectedLorebookIds.length > 0 ? { lorebookIds: selectedLorebookIds } : {}),
         maxOutputTokens: 800,
         contextWindowTokens: 8192,
         seed: 1,
@@ -545,6 +559,44 @@ export function CloudChat() {
                     </option>
                   ))}
                 </select>
+
+                {lorebooks.length === 0 ? (
+                  <p className="mt-2 text-[10px] leading-5 text-mist-500">
+                    没有世界书。
+                    <Link
+                      className="ml-1 text-moon-300 underline underline-offset-4"
+                      to="/lorebooks"
+                    >
+                      创建一本
+                    </Link>
+                  </p>
+                ) : (
+                  <fieldset className="mt-3">
+                    <legend className="text-[11px] text-mist-400">世界书</legend>
+                    <div className="mt-1 max-h-24 space-y-1 overflow-auto">
+                      {lorebooks.map((book) => (
+                        <label
+                          key={book.id}
+                          className="flex items-center gap-2 text-[11px] text-mist-300"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedLorebookIds.includes(book.id)}
+                            onChange={(event) => {
+                              setSelectedLorebookIds((current) =>
+                                event.target.checked
+                                  ? [...current, book.id]
+                                  : current.filter((id) => id !== book.id),
+                              );
+                              setPromptPreview(null);
+                            }}
+                          />
+                          <span className="truncate">{book.title}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                )}
 
                 <button
                   type="button"

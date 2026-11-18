@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: "/", label: "首页" },
   { to: "/chat", label: "聊天演示" },
   { to: "/characters", label: "角色" },
+  { to: "/lorebooks", label: "世界书" },
   { to: "/wallet", label: "积分" },
   { to: "/help", label: "帮助" },
 ] as const;
@@ -178,6 +179,11 @@ export function SiteFooter() {
             <li>
               <Link className="hover:text-moon-300" to="/characters">
                 云端角色
+              </Link>
+            </li>
+            <li>
+              <Link className="hover:text-moon-300" to="/lorebooks">
+                世界书
               </Link>
             </li>
             <li>

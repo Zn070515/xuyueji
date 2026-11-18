@@ -412,6 +412,124 @@ describeWithDatabase("M1 auth, cloud storage, message graph and sync", () => {
     expect(overBudget.json().error.code).toBe("PROMPT_BUDGET_EXCEEDED");
   });
 
+  it("creates, CAS-updates and deletes world book entries", async () => {
+    const owner = await register(app, `lore-${randomUUID()}@example.com`);
+    const stranger = await register(app, `lore-other-${randomUUID()}@example.com`);
+
+    const createdBook = await app.inject({
+      method: "POST",
+      url: "/api/lorebooks",
+      headers: { cookie: owner.cookie },
+      payload: { title: "雨夜书店" },
+    });
+    expect(createdBook.statusCode, createdBook.body).toBe(201);
+    const bookId = createdBook.json().id as string;
+    expect(createdBook.json().revision).toBe(1);
+
+    const hidden = await app.inject({
+      method: "GET",
+      url: `/api/lorebooks/${bookId}`,
+      headers: { cookie: stranger.cookie },
+    });
+    expect(hidden.statusCode).toBe(404);
+
+    const entryPayload = {
+      entryKey: "rain-entry",
+      content: "雨夜书店会亮起铜灯。",
+      keys: ["雨"],
+      secondaryKeys: [],
+      constant: false,
+      probability: 1,
+      position: "after_char",
+      scanDepth: 4,
+      recursive: false,
+      enabled: true,
+      sortKey: 1,
+    };
+    const createdEntry = await app.inject({
+      method: "POST",
+      url: `/api/lorebooks/${bookId}/entries`,
+      headers: { cookie: owner.cookie },
+      payload: entryPayload,
+    });
+    expect(createdEntry.statusCode, createdEntry.body).toBe(201);
+    const entryId = createdEntry.json().id as string;
+    expect(createdEntry.json().revision).toBe(1);
+    expect(createdEntry.json().rule.keys).toEqual(["雨"]);
+
+    const duplicate = await app.inject({
+      method: "POST",
+      url: `/api/lorebooks/${bookId}/entries`,
+      headers: { cookie: owner.cookie },
+      payload: entryPayload,
+    });
+    expect(duplicate.statusCode).toBe(409);
+    expect(duplicate.json().error.code).toBe("VERSION_CONFLICT");
+
+    const detail = await app.inject({
+      method: "GET",
+      url: `/api/lorebooks/${bookId}`,
+      headers: { cookie: owner.cookie },
+    });
+    expect(detail.statusCode).toBe(200);
+    expect(detail.json().entries).toHaveLength(1);
+    expect(detail.json().lorebook.entryCount).toBe(1);
+
+    const updated = await app.inject({
+      method: "PATCH",
+      url: `/api/lorebooks/${bookId}/entries/${entryId}`,
+      headers: { cookie: owner.cookie },
+      payload: {
+        ...entryPayload,
+        content: "雨夜书店会亮起铜灯，并响起铃声。",
+        keys: ["雨", "夜"],
+        probability: 0.8,
+        expectedRevision: 1,
+      },
+    });
+    expect(updated.statusCode, updated.body).toBe(200);
+    expect(updated.json().revision).toBe(2);
+    expect(updated.json().content).toContain("铃声");
+    expect(updated.json().rule.keys).toEqual(["雨", "夜"]);
+
+    const stale = await app.inject({
+      method: "PATCH",
+      url: `/api/lorebooks/${bookId}/entries/${entryId}`,
+      headers: { cookie: owner.cookie },
+      payload: { ...entryPayload, content: "过期", expectedRevision: 1 },
+    });
+    expect(stale.statusCode).toBe(409);
+    expect(stale.json().error.code).toBe("VERSION_CONFLICT");
+
+    const removed = await app.inject({
+      method: "DELETE",
+      url: `/api/lorebooks/${bookId}/entries/${entryId}`,
+      headers: { cookie: owner.cookie },
+    });
+    expect(removed.statusCode).toBe(204);
+
+    const afterDelete = await app.inject({
+      method: "GET",
+      url: `/api/lorebooks/${bookId}`,
+      headers: { cookie: owner.cookie },
+    });
+    expect(afterDelete.json().entries).toHaveLength(0);
+    expect(afterDelete.json().lorebook.entryCount).toBe(0);
+
+    const removedBook = await app.inject({
+      method: "DELETE",
+      url: `/api/lorebooks/${bookId}`,
+      headers: { cookie: owner.cookie },
+    });
+    expect(removedBook.statusCode).toBe(204);
+    const list = await app.inject({
+      method: "GET",
+      url: "/api/lorebooks",
+      headers: { cookie: owner.cookie },
+    });
+    expect(list.json().lorebooks).toHaveLength(0);
+  });
+
   it("stores a message graph with swipe candidates, CAS conflicts and tombstones", async () => {
     const session = await register(app, `graph-${randomUUID()}@example.com`);
 

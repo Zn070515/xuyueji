@@ -20,6 +20,7 @@ import { conversationRoutes } from "./routes/conversations.js";
 import { dataRoutes } from "./routes/data.js";
 import { demoRoutes } from "./routes/demo.js";
 import { healthRoutes } from "./routes/health.js";
+import { lorebookRoutes } from "./routes/lorebooks.js";
 import { metaRoutes } from "./routes/meta.js";
 import { mutationRoutes } from "./routes/mutations.js";
 import { promptRoutes } from "./routes/prompt.js";
@@ -75,7 +76,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
           },
         }
       : false,
-    bodyLimit: 64 * 1024,
+    bodyLimit: 1024 * 1024,
     requestIdHeader: "x-request-id",
     genReqId: () => randomUUID(),
     trustProxy: config.trustProxy,
@@ -238,6 +239,9 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     await app.register(authRoutes({ config, auth }), { prefix: "/api/auth" });
     await app.register(characterRoutes({ db: database.db, auth }), {
       prefix: "/api/characters",
+    });
+    await app.register(lorebookRoutes({ db: database.db, auth }), {
+      prefix: "/api/lorebooks",
     });
     await app.register(conversationRoutes({ db: database.db, auth }), {
       prefix: "/api/conversations",

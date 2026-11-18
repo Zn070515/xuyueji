@@ -361,6 +361,7 @@ export const syncEntityTypeSchema = z.enum([
   "character",
   "persona",
   "lorebook",
+  "lore_entry",
   "preset",
   "regex_rule",
   "memory_item",
@@ -422,6 +423,88 @@ export const syncMutationResponseSchema = z.object({
   results: z.array(syncMutationResultSchema),
 });
 export type SyncMutationResponse = z.infer<typeof syncMutationResponseSchema>;
+
+export const lorePositionSchema = z.enum([
+  "before_char",
+  "after_char",
+  "before_examples",
+  "after_examples",
+  "at_depth",
+]);
+
+export const lorebookRuleDtoSchema = z.object({
+  keys: z.array(z.string()),
+  secondaryKeys: z.array(z.string()),
+  caseSensitive: z.boolean(),
+  constant: z.boolean(),
+  probability: z.number().min(0).max(1),
+  position: lorePositionSchema,
+  scanDepth: z.number().int().nonnegative(),
+  recursive: z.boolean(),
+});
+
+export const lorebookEntryDtoSchema = z.object({
+  id: z.string(),
+  lorebookId: z.string(),
+  entryKey: z.string(),
+  revision: z.number().int().positive(),
+  content: z.string(),
+  enabled: z.boolean(),
+  sortKey: z.number().int().nonnegative(),
+  rule: lorebookRuleDtoSchema,
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type LorebookEntryDto = z.infer<typeof lorebookEntryDtoSchema>;
+
+export const lorebookSummarySchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  revision: z.number().int().positive(),
+  entryCount: z.number().int().nonnegative(),
+  updatedAt: z.string(),
+});
+export type LorebookSummaryDto = z.infer<typeof lorebookSummarySchema>;
+
+export const lorebookDetailSchema = z.object({
+  lorebook: lorebookSummarySchema,
+  entries: z.array(lorebookEntryDtoSchema),
+});
+export type LorebookDetailDto = z.infer<typeof lorebookDetailSchema>;
+
+export const createLorebookRequestSchema = z.object({ title: z.string().min(1).max(120) }).strict();
+export type CreateLorebookRequest = z.infer<typeof createLorebookRequestSchema>;
+
+export const updateLorebookRequestSchema = z
+  .object({
+    title: z.string().min(1).max(120),
+    expectedRevision: z.number().int().positive(),
+  })
+  .strict();
+export type UpdateLorebookRequest = z.infer<typeof updateLorebookRequestSchema>;
+
+export const lorebookEntryInputSchema = z
+  .object({
+    entryKey: z.string().min(1).max(120).optional(),
+    content: z.string().min(1).max(100_000),
+    keys: z.array(z.string().min(1).max(200)).max(100).default([]),
+    secondaryKeys: z.array(z.string().min(1).max(200)).max(100).default([]),
+    caseSensitive: z.boolean().default(false),
+    constant: z.boolean().default(false),
+    probability: z.number().min(0).max(1).default(1),
+    position: lorePositionSchema.default("after_char"),
+    scanDepth: z.number().int().min(0).max(50).default(4),
+    recursive: z.boolean().default(false),
+    enabled: z.boolean().default(true),
+    sortKey: z.number().int().nonnegative().default(0),
+  })
+  .strict();
+export type LorebookEntryInput = z.infer<typeof lorebookEntryInputSchema>;
+
+export const updateLorebookEntryRequestSchema = lorebookEntryInputSchema
+  .extend({ expectedRevision: z.number().int().positive() })
+  .strict();
+export type UpdateLorebookEntryRequest = z.infer<typeof updateLorebookEntryRequestSchema>;
 
 export const promptComponentDtoSchema = z.object({
   kind: z.enum([

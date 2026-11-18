@@ -74,9 +74,9 @@ export interface PlannedFeature {
 export const PLANNED_FEATURES: readonly PlannedFeature[] = [
   {
     title: "角色卡与世界书",
-    description: "V2/V3 导入导出、版本化角色、世界书触发与预算。",
+    description: "V2/V3 导入导出、世界书条目编辑、关键词触发与预算。",
     gate: "M2",
-    state: "计划中",
+    state: "已建立底座",
   },
   {
     title: "消息图与分支",

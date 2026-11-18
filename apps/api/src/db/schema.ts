@@ -431,6 +431,7 @@ export const loreEntries = pgTable(
     content: text("content").notNull(),
     enabled: boolean("enabled").notNull().default(true),
     sortKey: integer("sort_key").notNull().default(0),
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
     createdAt: createdAt(),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
       .notNull()
