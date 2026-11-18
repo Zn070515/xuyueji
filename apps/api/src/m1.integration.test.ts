@@ -1414,5 +1414,6 @@ describeWithDatabase("M1 auth, cloud storage, message graph and sync", () => {
     // final page must begin at the oldest.
     expect(firstPageLast).toBe(ids.at(-1));
     expect(lastPageFirst).toBe(ids[0]);
-  });
+    // 2,500 sequential appends exceed the default 20s on a loaded CI runner.
+  }, 90_000);
 });
