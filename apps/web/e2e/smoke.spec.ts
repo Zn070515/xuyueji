@@ -50,7 +50,7 @@ test("法律与联系页面是真实页面而非静态占位", async ({ page }) 
 });
 
 test("未实现模块诚实地说明自己的 Gate", async ({ page }) => {
-  await page.goto("/presets");
+  await page.goto("/memories");
   await expect(page.getByText("这个页面还不是功能页")).toBeVisible();
   await expect(page.getByText(/M2/).first()).toBeVisible();
 });
