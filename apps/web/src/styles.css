@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+@theme {
+  --color-night-950: #070d1e;
+  --color-night-900: #0b1633;
+  --color-night-800: #122045;
+  --color-night-700: #1b2f5e;
+  --color-night-600: #28437d;
+  --color-paper-50: #fbf8f1;
+  --color-paper-100: #f3ecdd;
+  --color-paper-200: #e6d9c2;
+  --color-paper-300: #d5c3a4;
+  --color-moon-200: #f7e8c6;
+  --color-moon-300: #f0d9a8;
+  --color-moon-400: #e3c07a;
+  --color-moon-500: #d3a95e;
+  --color-mist-200: #c8d2e8;
+  --color-mist-300: #a9b7d6;
+  --color-mist-400: #7f91b8;
+  --font-display: "Songti SC", "STSong", "Noto Serif SC", "SimSun", serif;
+  --font-sans: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-night-950);
+    color: var(--color-paper-50);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--color-moon-400);
+    color: var(--color-night-950);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-moon-400);
+    outline-offset: 3px;
+  }
+
+  a {
+    color: inherit;
+  }
+
+  button,
+  input,
+  textarea {
+    font: inherit;
+  }
+}
+
+@layer utilities {
+  .night-canvas {
+    background-image:
+      radial-gradient(circle at 12% -10%, rgb(40 67 125 / 45%), transparent 42rem),
+      radial-gradient(circle at 88% 0%, rgb(211 169 94 / 12%), transparent 32rem),
+      radial-gradient(circle at 50% 120%, rgb(27 47 94 / 55%), transparent 40rem);
+  }
+
+  .paper-card {
+    background-color: var(--color-paper-50);
+    color: var(--color-night-900);
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 60%) inset,
+      0 18px 50px -24px rgb(0 0 0 / 55%);
+  }
+
+  .glass-card {
+    background-color: rgb(18 32 69 / 72%);
+    border: 1px solid rgb(169 183 214 / 18%);
+    backdrop-filter: blur(12px);
+  }
+
+  .hairline {
+    border-color: rgb(169 183 214 / 20%);
+  }
+
+  .prose-night h2 {
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    color: var(--color-night-900);
+  }
+
+  .prose-night h3 {
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--color-night-900);
+  }
+
+  .prose-night p,
+  .prose-night li {
+    margin-bottom: 0.7rem;
+    color: #3a4660;
+    line-height: 1.85;
+  }
+
+  .prose-night ul {
+    list-style: disc;
+    padding-left: 1.35rem;
+  }
+
+  .prose-night a {
+    color: #8a5a12;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(169 183 214 / 35%) transparent;
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}

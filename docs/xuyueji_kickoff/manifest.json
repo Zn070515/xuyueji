@@ -1,0 +1,9 @@
+{
+  "package": "xuyueji-v1-kickoff",
+  "version": "2026-11-18",
+  "artifact_type": "architecture-and-agent-instructions",
+  "code_included": false,
+  "approvals_obtained": false,
+  "default_deployment": "aliyun-hangzhou-2c2g",
+  "language": "zh-CN"
+}

@@ -1,0 +1,75 @@
+name: xuyueji
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: xuyueji
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-xuyueji_dev}
+      POSTGRES_DB: xuyueji
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - xuyueji-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U xuyueji -d xuyueji"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DEMO_MODE: "true"
+      PAYMENTS_ENABLED: "false"
+      AI_ENABLED: "false"
+      API_HOST: 0.0.0.0
+      API_PORT: "3000"
+      DATABASE_URL: postgres://xuyueji:${POSTGRES_PASSWORD:-xuyueji_dev}@db:5432/xuyueji
+      MOCK_PAYMENT_SECRET: ${MOCK_PAYMENT_SECRET:-xuyueji-dev-only-mock-secret}
+      TRUST_PROXY: "true"
+    command: ["sh", "-c", "node dist/migrate.js && node dist/server.js"]
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "3000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/health').then((r)=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+
+  caddy:
+    build:
+      context: .
+      dockerfile: infra/Dockerfile.web
+    restart: unless-stopped
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+      ACME_EMAIL: ${ACME_EMAIL:-noreply@xuyueji.cn}
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+      - "${HTTPS_PORT:-8443}:443"
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - xuyueji-caddy-data:/data
+      - xuyueji-caddy-config:/config
+
+volumes:
+  xuyueji-db:
+  xuyueji-caddy-data:
+  xuyueji-caddy-config:

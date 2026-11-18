@@ -1,0 +1,34 @@
+{
+  "name": "xuyueji",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.14.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @xuyueji/api --filter @xuyueji/web dev",
+    "dev:api": "pnpm --filter @xuyueji/api dev",
+    "dev:web": "pnpm --filter @xuyueji/web dev",
+    "build": "pnpm --filter @xuyueji/web build && pnpm --filter @xuyueji/api build",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:generate": "pnpm --filter @xuyueji/api db:generate",
+    "db:migrate": "pnpm --filter @xuyueji/api db:migrate",
+    "e2e": "playwright test -c apps/web/playwright.config.ts",
+    "screenshots": "playwright test -c apps/web/playwright.config.ts --project=desktop screenshots.spec.ts",
+    "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.8",
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.1"
+  }
+}

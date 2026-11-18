@@ -1,0 +1,15 @@
+FROM node:24-alpine AS build
+
+RUN corepack enable
+WORKDIR /app
+
+COPY . .
+RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @xuyueji/web build
+
+FROM caddy:2-alpine
+
+COPY infra/Caddyfile /etc/caddy/Caddyfile
+COPY --from=build /app/apps/web/dist /srv/web
+
+EXPOSE 80 443
