@@ -482,6 +482,60 @@ export const personaVersionResponseSchema = z.object({
 });
 export type PersonaVersionResponse = z.infer<typeof personaVersionResponseSchema>;
 
+export const presetSectionSchema = z
+  .object({
+    id: z.string().min(1).max(100),
+    title: z.string().min(1).max(120),
+    content: z.string().min(1).max(20_000),
+    enabled: z.boolean(),
+    order: z.number().int().nonnegative(),
+    depth: z.number().int().min(0).max(50),
+  })
+  .strict();
+export type PresetSectionDto = z.infer<typeof presetSectionSchema>;
+
+export const presetSectionsSchema = z
+  .array(presetSectionSchema)
+  .max(50)
+  .refine((sections) => new Set(sections.map((section) => section.id)).size === sections.length, {
+    message: "Preset section ids must be unique.",
+  });
+
+export const presetSummarySchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  revision: z.number().int().positive(),
+  enabled: z.boolean(),
+  sectionCount: z.number().int().nonnegative(),
+  updatedAt: z.string(),
+});
+export type PresetSummaryDto = z.infer<typeof presetSummarySchema>;
+
+export const presetDetailSchema = z.object({
+  preset: presetSummarySchema,
+  sections: z.array(presetSectionSchema),
+});
+export type PresetDetailDto = z.infer<typeof presetDetailSchema>;
+
+export const createPresetRequestSchema = z
+  .object({
+    title: z.string().min(1).max(120),
+    sections: presetSectionsSchema,
+    enabled: z.boolean().optional(),
+  })
+  .strict();
+export type CreatePresetRequest = z.infer<typeof createPresetRequestSchema>;
+
+export const updatePresetRequestSchema = z
+  .object({
+    title: z.string().min(1).max(120),
+    sections: presetSectionsSchema,
+    enabled: z.boolean(),
+    expectedRevision: z.number().int().positive(),
+  })
+  .strict();
+export type UpdatePresetRequest = z.infer<typeof updatePresetRequestSchema>;
+
 export const lorePositionSchema = z.enum([
   "before_char",
   "after_char",
@@ -611,6 +665,7 @@ export const promptPreviewRequestSchema = z
     userInput: z.string().min(1).max(100_000),
     lorebookIds: z.array(z.uuid()).max(20).optional(),
     personaId: z.uuid().optional(),
+    presetId: z.uuid().optional(),
     persona: z
       .object({
         name: z.string().min(1).max(120),

@@ -392,6 +392,27 @@ describeWithDatabase("M1 auth, cloud storage, message graph and sync", () => {
       sortKey: 1,
     });
 
+    const presetResponse = await app.inject({
+      method: "POST",
+      url: "/api/presets",
+      headers: { cookie: session.cookie },
+      payload: {
+        title: "测试预设",
+        sections: [
+          {
+            id: "style",
+            title: "写作风格",
+            content: "写作风格：简洁、克制。",
+            enabled: true,
+            order: 1,
+            depth: 0,
+          },
+        ],
+      },
+    });
+    expect(presetResponse.statusCode, presetResponse.body).toBe(201);
+    const presetId = presetResponse.json().preset.id as string;
+
     const body = {
       conversationId: conversation.id,
       branchId: conversation.activeBranchId,
@@ -399,6 +420,7 @@ describeWithDatabase("M1 auth, cloud storage, message graph and sync", () => {
       userInput: "雨夜，我想找一本书。",
       lorebookIds: [lorebookId],
       persona: { name: "读者", description: "喜欢雨夜故事。" },
+      presetId,
       maxOutputTokens: 200,
       contextWindowTokens: 4096,
       seed: 11,
@@ -416,6 +438,12 @@ describeWithDatabase("M1 auth, cloud storage, message graph and sync", () => {
     expect(first.plan.systemPrompt).toContain("世界书内容：雨夜的书店会亮起铜灯。");
     expect(first.plan.systemPrompt).toContain("Prompt 角色");
     expect(first.plan.systemPrompt).toContain("用户人格：读者");
+    expect(first.plan.systemPrompt).toContain("写作风格：简洁、克制。");
+    expect(
+      first.plan.components.find(
+        (component: { kind: string }) => component.kind === "preset_system",
+      )?.included,
+    ).toBe(true);
     expect(first.plan.messages.at(-1)).toEqual({
       role: "user",
       content: "雨夜，我想找一本书。",
@@ -491,6 +519,91 @@ describeWithDatabase("M1 auth, cloud storage, message graph and sync", () => {
     });
     expect(overBudget.statusCode).toBe(422);
     expect(overBudget.json().error.code).toBe("PROMPT_BUDGET_EXCEEDED");
+  });
+
+  it("creates, CAS-updates and deletes a preset", async () => {
+    const owner = await register(app, `preset-${randomUUID()}@example.com`);
+    const stranger = await register(app, `preset-other-${randomUUID()}@example.com`);
+    const sections = [
+      {
+        id: "style",
+        title: "写作风格",
+        content: "简洁。",
+        enabled: true,
+        order: 1,
+        depth: 0,
+      },
+    ];
+
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/presets",
+      headers: { cookie: owner.cookie },
+      payload: { title: "我的预设", sections },
+    });
+    expect(created.statusCode, created.body).toBe(201);
+    const presetId = created.json().preset.id as string;
+    expect(created.json().preset.revision).toBe(1);
+    expect(created.json().sections).toHaveLength(1);
+
+    const hidden = await app.inject({
+      method: "GET",
+      url: `/api/presets/${presetId}`,
+      headers: { cookie: stranger.cookie },
+    });
+    expect(hidden.statusCode).toBe(404);
+
+    const list = await app.inject({
+      method: "GET",
+      url: "/api/presets",
+      headers: { cookie: owner.cookie },
+    });
+    expect(list.json().presets).toHaveLength(1);
+    expect(list.json().presets[0].sectionCount).toBe(1);
+
+    const updated = await app.inject({
+      method: "PATCH",
+      url: `/api/presets/${presetId}`,
+      headers: { cookie: owner.cookie },
+      payload: {
+        title: "我的预设 v2",
+        sections: [
+          { ...sections[0], content: "更简洁。", order: 2 },
+          { id: "b", title: "第二段", content: "第二段内容。", enabled: true, order: 3, depth: 0 },
+        ],
+        enabled: true,
+        expectedRevision: 1,
+      },
+    });
+    expect(updated.statusCode, updated.body).toBe(200);
+    expect(updated.json().preset.revision).toBe(2);
+    expect(updated.json().sections).toHaveLength(2);
+
+    const stale = await app.inject({
+      method: "PATCH",
+      url: `/api/presets/${presetId}`,
+      headers: { cookie: owner.cookie },
+      payload: {
+        title: "过期",
+        sections,
+        enabled: true,
+        expectedRevision: 1,
+      },
+    });
+    expect(stale.statusCode).toBe(409);
+
+    const removed = await app.inject({
+      method: "DELETE",
+      url: `/api/presets/${presetId}`,
+      headers: { cookie: owner.cookie },
+    });
+    expect(removed.statusCode).toBe(204);
+    const afterDelete = await app.inject({
+      method: "GET",
+      url: "/api/presets",
+      headers: { cookie: owner.cookie },
+    });
+    expect(afterDelete.json().presets).toHaveLength(0);
   });
 
   it("creates, CAS-updates and deletes a persona", async () => {
