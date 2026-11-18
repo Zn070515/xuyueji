@@ -48,6 +48,12 @@ export interface PromptPersonaInput {
   readonly description: string;
 }
 
+export interface PromptMemoryInput {
+  readonly id: string;
+  readonly content: string;
+  readonly kind?: string;
+}
+
 export interface PromptWorldInfoInput {
   readonly id: string;
   readonly content: string;
@@ -65,6 +71,7 @@ export interface PromptSources {
   readonly presetSections?: readonly PromptSection[];
   readonly character?: PromptCharacterInput;
   readonly persona?: PromptPersonaInput;
+  readonly memories?: readonly PromptMemoryInput[];
   readonly worldInfo?: readonly PromptWorldInfoInput[];
   readonly examples?: readonly string[];
   readonly history?: readonly PromptHistoryMessage[];
@@ -210,6 +217,20 @@ function buildCandidates(sources: PromptSources): Candidate[] {
       mandatory: false,
       priority: 600,
       order: 30,
+    });
+  }
+
+  for (const [index, memory] of (sources.memories ?? []).entries()) {
+    if (memory.content.trim().length === 0) {
+      continue;
+    }
+    candidates.push({
+      kind: "memory",
+      sourceId: memory.id,
+      content: memory.content,
+      mandatory: false,
+      priority: 560,
+      order: 35 + index / 1000,
     });
   }
 

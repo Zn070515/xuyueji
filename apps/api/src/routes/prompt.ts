@@ -8,8 +8,10 @@ import { promptPreviewRequestSchema } from "@xuyueji/contracts";
 import { compilePrompt, type PromptSection, type PromptSources } from "@xuyueji/prompt-engine";
 import {
   applySafeRegex,
+  type MemorySelectionResult,
   matchWorldInfo,
   SafeRegexError,
+  selectMemories,
   type WorldInfoEntry,
   type WorldInfoLimits,
 } from "@xuyueji/tavern-core";
@@ -23,6 +25,7 @@ import type { Database } from "../db/client.js";
 import { lorebooks, loreEntries } from "../db/schema.js";
 import { getCharacter } from "../repositories/characters.js";
 import { listMessagePath } from "../repositories/conversations.js";
+import { listMemories, listMemoriesByIds } from "../repositories/memories.js";
 import { getPersona } from "../repositories/personas.js";
 import { getPreset } from "../repositories/presets.js";
 import { listRegexRulesByIds } from "../repositories/regex-rules.js";
@@ -48,6 +51,8 @@ const ruleSchema = z.object({
   scanDepth: z.number().int().min(0).max(50).optional(),
   recursive: z.boolean().optional(),
 });
+
+const MEMORY_LIMITS = { maxItems: 8, maxBytes: 16 * 1024, maxTokens: 1200 };
 
 const WORLD_LIMITS: WorldInfoLimits = {
   maxDepth: 6,
@@ -291,6 +296,43 @@ export function promptRoutes(options: {
           : undefined;
       }
 
+      let memoryResult: MemorySelectionResult = {
+        selected: [],
+        skipped: [],
+        totalEstimatedTokens: 0,
+        totalBytes: 0,
+      };
+      const missingMemories: { id: string; reason: string }[] = [];
+      if ((body.memoryIds && body.memoryIds.length > 0) || body.autoMemory) {
+        const explicitRows =
+          body.memoryIds && body.memoryIds.length > 0
+            ? await listMemoriesByIds(db, session.userId, body.memoryIds)
+            : [];
+        const autoRows = body.autoMemory ? await listMemories(db, session.userId) : [];
+        const explicitIds = new Set(explicitRows.map((row) => row.id));
+        const rows = [...explicitRows, ...autoRows.filter((row) => !explicitIds.has(row.id))];
+        if (body.memoryIds && body.memoryIds.length > 0) {
+          const found = new Set(rows.map((row) => row.id));
+          for (const memoryId of body.memoryIds) {
+            if (!found.has(memoryId)) {
+              missingMemories.push({ id: memoryId, reason: "not-found" });
+            }
+          }
+        }
+        memoryResult = selectMemories(
+          rows.map((row) => ({
+            id: row.id,
+            kind: row.kind,
+            content: row.content,
+            conversationId: row.conversationId,
+            scope: row.scope,
+            locked: row.locked,
+            updatedAt: row.updatedAt,
+          })),
+          { query: userInput, conversationId: body.conversationId, limits: MEMORY_LIMITS },
+        );
+      }
+
       const payload = active.payloadJsonb as Record<string, unknown>;
       const sources: PromptSources = {
         platformPolicy: PLATFORM_POLICY,
@@ -304,6 +346,15 @@ export function promptRoutes(options: {
             : {}),
         },
         ...(persona ? { persona } : {}),
+        ...(memoryResult.selected.length > 0
+          ? {
+              memories: memoryResult.selected.map((entry) => ({
+                id: entry.item.id,
+                content: entry.item.content,
+                kind: entry.item.kind,
+              })),
+            }
+          : {}),
         presetSections,
         worldInfo: world.activated.map((item) => ({
           id: item.entry.id,
@@ -381,6 +432,19 @@ export function promptRoutes(options: {
               rule.stage === "model_output" ? "model_runtime_not_connected" : "client_display_only",
           })),
           transformedInput: userInput,
+        },
+        memory: {
+          selected: memoryResult.selected.map((entry) => ({
+            id: entry.item.id,
+            kind: entry.item.kind,
+            content: entry.item.content,
+            score: entry.score,
+            matchedTerms: [...entry.matchedTerms],
+            reason: entry.reason,
+            estimatedTokens: entry.estimatedTokens,
+          })),
+          skipped: [...memoryResult.skipped.map((item) => ({ ...item })), ...missingMemories],
+          totalEstimatedTokens: memoryResult.totalEstimatedTokens,
         },
       };
       return response;

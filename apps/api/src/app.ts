@@ -22,6 +22,7 @@ import { dataRoutes } from "./routes/data.js";
 import { demoRoutes } from "./routes/demo.js";
 import { healthRoutes } from "./routes/health.js";
 import { lorebookRoutes } from "./routes/lorebooks.js";
+import { memoryRoutes } from "./routes/memories.js";
 import { metaRoutes } from "./routes/meta.js";
 import { mutationRoutes } from "./routes/mutations.js";
 import { personaRoutes } from "./routes/personas.js";
@@ -267,6 +268,9 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     });
     await app.register(regexRuleRoutes({ db: database.db, auth }), {
       prefix: "/api/regex-rules",
+    });
+    await app.register(memoryRoutes({ db: database.db, auth }), {
+      prefix: "/api/memories",
     });
     await app.register(conversationRoutes({ db: database.db, auth }), {
       prefix: "/api/conversations",

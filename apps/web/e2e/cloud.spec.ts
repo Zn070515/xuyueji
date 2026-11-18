@@ -280,6 +280,49 @@ test("regex rule rewrites the prompt input", async ({ page }, testInfo) => {
   await expect(page.getByText("用户输入已被 user_input 阶段规则改写")).toBeVisible();
 });
 
+test("locked and matched memories are injected into the preview", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "记忆流程只需在桌面项目跑一次");
+
+  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const email = `memory-${suffix}@example.com`;
+  const password = "correct horse battery staple";
+
+  await page.goto("/register");
+  await page.getByLabel("显示名称").fill("记忆用户");
+  await page.getByLabel("邮箱").fill(email);
+  await page.getByLabel(/密码（至少 12 位）/).fill(password);
+  await page.getByLabel(/我确认已年满/).check();
+  await page.getByRole("button", { name: "创建账号" }).click();
+  await expect(page).toHaveURL(/\/settings$/);
+
+  await page.goto("/memories");
+  await expect(page.getByRole("heading", { name: "让角色记住真正重要的事。" })).toBeVisible();
+  await page.getByRole("button", { name: "新建记忆" }).click();
+  await page.locator("#memory-content").fill("锁定的旧伤：主角怕水。");
+  await page.getByLabel(/锁定（总是注入/).check();
+  await page.getByRole("button", { name: "保存记忆" }).click();
+  await expect(page.getByText("记忆已创建。")).toBeVisible();
+
+  await page.goto("/characters");
+  await page.locator("#character-name").fill("记忆测试角色");
+  await page.locator("#character-description").fill("用于记忆预览");
+  await page.getByRole("button", { name: "创建并保存到云端" }).click();
+  await expect(page.getByRole("heading", { name: "记忆测试角色" })).toBeVisible();
+
+  await page.goto("/chat");
+  await page.getByRole("button", { name: "新建云端会话" }).click();
+  await page.locator("#cloud-chat-input").fill("你好。");
+  await page.getByRole("button", { name: "发送到云端" }).click();
+  await expect(page.getByText("你好。")).toBeVisible();
+
+  await page.getByLabel("启用长期记忆检索（按当前输入）").check();
+  await page.getByRole("button", { name: "生成 Prompt 预览" }).click();
+  await expect(page.getByText(/digest/)).toBeVisible();
+  await expect(page.getByText("记忆注入 1 条")).toBeVisible();
+  await page.getByText("查看 systemPrompt").click();
+  await expect(page.locator("pre", { hasText: "锁定的旧伤：主角怕水。" })).toBeVisible();
+});
+
 test("register, save a cloud character version and export", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "云端流程只需在桌面项目跑一次");
 
