@@ -398,6 +398,7 @@ describeWithDatabase("M1 auth, cloud storage, message graph and sync", () => {
       characterId,
       userInput: "雨夜，我想找一本书。",
       lorebookIds: [lorebookId],
+      persona: { name: "读者", description: "喜欢雨夜故事。" },
       maxOutputTokens: 200,
       contextWindowTokens: 4096,
       seed: 11,
@@ -414,6 +415,7 @@ describeWithDatabase("M1 auth, cloud storage, message graph and sync", () => {
     expect(first.worldInfo.activated[0].reason).toBe("keyword");
     expect(first.plan.systemPrompt).toContain("世界书内容：雨夜的书店会亮起铜灯。");
     expect(first.plan.systemPrompt).toContain("Prompt 角色");
+    expect(first.plan.systemPrompt).toContain("用户人格：读者");
     expect(first.plan.messages.at(-1)).toEqual({
       role: "user",
       content: "雨夜，我想找一本书。",
@@ -489,6 +491,76 @@ describeWithDatabase("M1 auth, cloud storage, message graph and sync", () => {
     });
     expect(overBudget.statusCode).toBe(422);
     expect(overBudget.json().error.code).toBe("PROMPT_BUDGET_EXCEEDED");
+  });
+
+  it("creates, CAS-updates and deletes a persona", async () => {
+    const owner = await register(app, `persona-${randomUUID()}@example.com`);
+    const stranger = await register(app, `persona-other-${randomUUID()}@example.com`);
+
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/personas",
+      headers: { cookie: owner.cookie },
+      payload: { displayName: "我的 Persona", description: "第一版" },
+    });
+    expect(created.statusCode, created.body).toBe(201);
+    const personaId = created.json().persona.id as string;
+    expect(created.json().persona.revision).toBe(1);
+    const activeVersionId = created.json().persona.activeVersionId as string;
+
+    const list = await app.inject({
+      method: "GET",
+      url: "/api/personas",
+      headers: { cookie: owner.cookie },
+    });
+    expect(list.statusCode).toBe(200);
+    expect(list.json().personas).toHaveLength(1);
+    expect(list.json().personas[0].displayName).toBe("我的 Persona");
+
+    const hidden = await app.inject({
+      method: "GET",
+      url: `/api/personas/${personaId}`,
+      headers: { cookie: stranger.cookie },
+    });
+    expect(hidden.statusCode).toBe(404);
+
+    const updated = await app.inject({
+      method: "POST",
+      url: `/api/personas/${personaId}/versions`,
+      headers: { cookie: owner.cookie },
+      payload: {
+        expectedActiveVersionId: activeVersionId,
+        payload: { displayName: "我的 Persona", description: "第二版" },
+      },
+    });
+    expect(updated.statusCode, updated.body).toBe(200);
+    expect(updated.json().revision).toBe(2);
+    expect(updated.json().versionCount).toBe(2);
+
+    const stale = await app.inject({
+      method: "POST",
+      url: `/api/personas/${personaId}/versions`,
+      headers: { cookie: owner.cookie },
+      payload: {
+        expectedActiveVersionId: activeVersionId,
+        payload: { displayName: "过期", description: "不应生效" },
+      },
+    });
+    expect(stale.statusCode).toBe(409);
+    expect(stale.json().error.code).toBe("VERSION_CONFLICT");
+
+    const removed = await app.inject({
+      method: "DELETE",
+      url: `/api/personas/${personaId}`,
+      headers: { cookie: owner.cookie },
+    });
+    expect(removed.statusCode).toBe(204);
+    const afterDelete = await app.inject({
+      method: "GET",
+      url: "/api/personas",
+      headers: { cookie: owner.cookie },
+    });
+    expect(afterDelete.json().personas).toHaveLength(0);
   });
 
   it("creates, CAS-updates and deletes world book entries", async () => {
