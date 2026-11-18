@@ -423,6 +423,92 @@ export const syncMutationResponseSchema = z.object({
 });
 export type SyncMutationResponse = z.infer<typeof syncMutationResponseSchema>;
 
+export const promptComponentDtoSchema = z.object({
+  kind: z.enum([
+    "platform_policy",
+    "preset_system",
+    "character",
+    "persona",
+    "world_info",
+    "memory",
+    "examples",
+    "history",
+    "author_note",
+    "user_input",
+    "closing_constraints",
+  ]),
+  sourceId: z.string(),
+  content: z.string(),
+  estimatedTokens: z.number().int().nonnegative(),
+  mandatory: z.boolean(),
+  priority: z.number(),
+  included: z.boolean(),
+  reason: z.string().optional(),
+});
+
+export const promptHistoryMessageSchema = z.object({
+  role: z.enum(["system", "user", "assistant"]),
+  content: z.string(),
+});
+
+export const promptPlanDtoSchema = z.object({
+  digest: z.string(),
+  components: z.array(promptComponentDtoSchema),
+  estimatedInputTokens: z.number().int().nonnegative(),
+  reservedOutputTokens: z.number().int().nonnegative(),
+  warnings: z.array(z.string()),
+  systemPrompt: z.string(),
+  messages: z.array(promptHistoryMessageSchema),
+});
+export type PromptPlanDto = z.infer<typeof promptPlanDtoSchema>;
+
+export const promptPreviewRequestSchema = z
+  .object({
+    conversationId: z.uuid(),
+    branchId: z.string().min(1).max(100),
+    characterId: z.uuid(),
+    userInput: z.string().min(1).max(100_000),
+    lorebookIds: z.array(z.uuid()).max(20).optional(),
+    persona: z
+      .object({
+        name: z.string().min(1).max(120),
+        description: z.string().max(50_000),
+      })
+      .strict()
+      .optional(),
+    maxOutputTokens: z.number().int().min(1).max(4000).optional(),
+    contextWindowTokens: z.number().int().min(1024).max(128_000).optional(),
+    seed: z.number().int().optional(),
+  })
+  .strict();
+export type PromptPreviewRequest = z.infer<typeof promptPreviewRequestSchema>;
+
+export const worldInfoActivationDtoSchema = z.object({
+  id: z.string(),
+  reason: z.enum(["constant", "keyword", "recursive"]),
+  depth: z.number().int().nonnegative(),
+  matchedKeys: z.array(z.string()),
+  content: z.string(),
+  estimatedTokens: z.number().int().nonnegative(),
+});
+
+export const worldInfoSkipDtoSchema = z.object({
+  entryId: z.string(),
+  reason: z.string(),
+});
+
+export const promptPreviewResponseSchema = z.object({
+  plan: promptPlanDtoSchema,
+  worldInfo: z.object({
+    activated: z.array(worldInfoActivationDtoSchema),
+    skipped: z.array(worldInfoSkipDtoSchema),
+    warnings: z.array(z.string()),
+    totalEstimatedTokens: z.number().int().nonnegative(),
+    totalBytes: z.number().int().nonnegative(),
+  }),
+});
+export type PromptPreviewResponse = z.infer<typeof promptPreviewResponseSchema>;
+
 export const errorResponseSchema = z.object({
   error: z.object({
     code: z.string(),

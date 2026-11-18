@@ -19,6 +19,8 @@
     "@xuyueji/compat": "workspace:*",
     "@xuyueji/contracts": "workspace:*",
     "@xuyueji/domain": "workspace:*",
+    "@xuyueji/prompt-engine": "workspace:*",
+    "@xuyueji/tavern-core": "workspace:*",
     "dotenv": "^18.0.10",
     "drizzle-orm": "^0.45.4",
     "fastify": "^5.12.8",

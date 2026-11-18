@@ -211,6 +211,12 @@ importers:
       '@xuyueji/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@xuyueji/prompt-engine':
+        specifier: workspace:*
+        version: link:../../packages/prompt-engine
+      '@xuyueji/tavern-core':
+        specifier: workspace:*
+        version: link:../../packages/tavern-core
       dotenv:
         specifier: ^18.0.10
         version: 18.0.10

@@ -14,6 +14,8 @@ import {
   branches,
   characters,
   conversations,
+  lorebooks,
+  loreEntries,
   messageNodes,
   presets,
   users,
@@ -290,6 +292,124 @@ describeWithDatabase("M1 auth, cloud storage, message graph and sync", () => {
     });
     expect(invalid.statusCode).toBe(400);
     expect(invalid.json().error.code).toBe("INVALID_CHARACTER_CARD");
+  });
+
+  it("previews a deterministic prompt with world info from the database", async () => {
+    const session = await register(app, `prompt-${randomUUID()}@example.com`);
+    const characterResponse = await app.inject({
+      method: "POST",
+      url: "/api/characters",
+      headers: { cookie: session.cookie },
+      payload: {
+        payload: {
+          name: "Prompt 角色",
+          description: "书店店主",
+          personality: "安静",
+          exampleMessages: ["用户：在吗？\n角色：在。"],
+        },
+      },
+    });
+    expect(characterResponse.statusCode, characterResponse.body).toBe(201);
+    const characterId = (characterResponse.json() as { character: { id: string } }).character.id;
+
+    const conversationResponse = await app.inject({
+      method: "POST",
+      url: "/api/conversations",
+      headers: { cookie: session.cookie },
+      payload: { title: "Prompt 会话" },
+    });
+    expect(conversationResponse.statusCode).toBe(201);
+    const conversation = conversationResponse.json() as {
+      id: string;
+      activeBranchId: string;
+    };
+    const firstMessage = await app.inject({
+      method: "POST",
+      url: `/api/conversations/${conversation.id}/messages`,
+      headers: { cookie: session.cookie },
+      payload: {
+        branchId: conversation.activeBranchId,
+        expectedBranchRevision: 0,
+        parentId: null,
+        role: "user",
+        content: "外面下雨了",
+        requestId: "prompt-req-1",
+      },
+    });
+    expect(firstMessage.statusCode).toBe(201);
+
+    const lorebookId = randomUUID();
+    await database.db.insert(lorebooks).values({
+      id: lorebookId,
+      ownerUserId: session.userId,
+      title: "雨夜书店",
+      revision: 1,
+    });
+    await database.db.insert(loreEntries).values({
+      id: randomUUID(),
+      lorebookId,
+      ownerUserId: session.userId,
+      entryKey: "rain",
+      revision: 1,
+      ruleJsonb: {
+        keys: ["雨"],
+        secondaryKeys: [],
+        constant: false,
+        probability: 1,
+        position: "after_char",
+        scanDepth: 4,
+        recursive: false,
+      },
+      content: "世界书内容：雨夜的书店会亮起铜灯。",
+      enabled: true,
+      sortKey: 1,
+    });
+
+    const body = {
+      conversationId: conversation.id,
+      branchId: conversation.activeBranchId,
+      characterId,
+      userInput: "雨夜，我想找一本书。",
+      lorebookIds: [lorebookId],
+      maxOutputTokens: 200,
+      contextWindowTokens: 4096,
+      seed: 11,
+    };
+    const preview = await app.inject({
+      method: "POST",
+      url: "/api/prompt/preview",
+      headers: { cookie: session.cookie },
+      payload: body,
+    });
+    expect(preview.statusCode, preview.body).toBe(200);
+    const first = preview.json();
+    expect(first.worldInfo.activated).toHaveLength(1);
+    expect(first.worldInfo.activated[0].reason).toBe("keyword");
+    expect(first.plan.systemPrompt).toContain("世界书内容：雨夜的书店会亮起铜灯。");
+    expect(first.plan.systemPrompt).toContain("Prompt 角色");
+    expect(first.plan.messages.at(-1)).toEqual({
+      role: "user",
+      content: "雨夜，我想找一本书。",
+    });
+    expect(first.plan.digest).toMatch(/^[0-9a-f]{8}$/);
+
+    const replay = await app.inject({
+      method: "POST",
+      url: "/api/prompt/preview",
+      headers: { cookie: session.cookie },
+      payload: body,
+    });
+    expect(replay.statusCode, replay.body).toBe(200);
+    expect(replay.json().plan.digest).toBe(first.plan.digest);
+
+    const overBudget = await app.inject({
+      method: "POST",
+      url: "/api/prompt/preview",
+      headers: { cookie: session.cookie },
+      payload: { ...body, contextWindowTokens: 1024, maxOutputTokens: 4000 },
+    });
+    expect(overBudget.statusCode).toBe(422);
+    expect(overBudget.json().error.code).toBe("PROMPT_BUDGET_EXCEEDED");
   });
 
   it("stores a message graph with swipe candidates, CAS conflicts and tombstones", async () => {

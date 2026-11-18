@@ -5,6 +5,7 @@ import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import { CharacterCardParseError } from "@xuyueji/compat";
 import { DomainError, type DomainErrorCode } from "@xuyueji/domain";
+import { PromptBudgetExceededError } from "@xuyueji/prompt-engine";
 import Fastify, { type FastifyInstance } from "fastify";
 import { ZodError } from "zod";
 
@@ -21,6 +22,7 @@ import { demoRoutes } from "./routes/demo.js";
 import { healthRoutes } from "./routes/health.js";
 import { metaRoutes } from "./routes/meta.js";
 import { mutationRoutes } from "./routes/mutations.js";
+import { promptRoutes } from "./routes/prompt.js";
 import { syncRoutes } from "./routes/sync.js";
 
 const STATUS_BY_CODE: Readonly<Record<DomainErrorCode, number>> = {
@@ -133,6 +135,20 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
       });
     }
 
+    if (error instanceof PromptBudgetExceededError) {
+      return reply.code(422).send({
+        error: {
+          code: "PROMPT_BUDGET_EXCEEDED",
+          message: error.message,
+          requestId: request.id,
+          details: {
+            requiredTokens: error.requiredTokens,
+            availableTokens: error.availableTokens,
+          },
+        },
+      });
+    }
+
     if (error instanceof AuthError) {
       app.log.warn({ reqId: request.id, code: error.code }, "auth request rejected");
       return reply.code(error.statusCode).send({
@@ -198,6 +214,9 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     });
     await app.register(syncRoutes({ db: database.db, auth }), { prefix: "/api/sync" });
     await app.register(mutationRoutes({ db: database.db, auth }), { prefix: "/api" });
+    await app.register(promptRoutes({ db: database.db, auth }), {
+      prefix: "/api/prompt",
+    });
     await app.register(dataRoutes({ db: database.db, auth }), { prefix: "/api" });
     app.addHook("onClose", async () => {
       if (ownsDatabase) {

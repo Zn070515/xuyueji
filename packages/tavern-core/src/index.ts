@@ -36,6 +36,8 @@ export interface WorldInfoScope {
   readonly conversationBookIds: readonly string[];
 }
 
+export * from "./world-info.js";
+
 export const TAVERN_CORE_STATUS = {
   gate: "M2",
   implemented: ["domain-types"],
