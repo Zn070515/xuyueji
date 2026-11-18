@@ -479,6 +479,7 @@ export const regexRules = pgTable(
     revision: integer("revision").notNull().default(1),
     stage: text("stage").notNull(),
     pattern: text("pattern").notNull(),
+    replacement: text("replacement").notNull().default(""),
     flags: text("flags").notNull().default(""),
     sortOrder: integer("sort_order").notNull().default(0),
     enabled: boolean("enabled").notNull().default(true),
