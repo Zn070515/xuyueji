@@ -96,7 +96,7 @@ docs                    kickoff 文档与 ADR
   `client_request_id` 唯一索引保证重试不重复追加消息。
 - **角色版本 CAS**：过期 `expectedActiveVersionId` 返回 409，不静默覆盖另一台设备的修改。
 - **同步契约**：`sync_changes` 游标、opaque cursor、200 条分页；Dexie outbox 用 `opId`
-  幂等，失败 5 次进入 failed。
+  幂等，失败 5 次进入 failed，设置页可手动投递到 `/api/mutations`。
 - **导出可带走**：JSON 导出/导入包含角色版本、会话、分支与消息图，不含密码、会话令牌或支付凭据。
 - **支付幂等**：同一商户订单与外部交易最多入账一次；重复通知/重试不重复加积分。
 - **数据库约束**：钱包非负、账本 `unique_key`、订单号、run 的 `client_request_id` 唯一、

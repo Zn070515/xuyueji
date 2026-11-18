@@ -20,7 +20,7 @@ M1 把 M0 的纯演示接口推进为可用的云端存档基础：
 - **导出/恢复**：JSON 导出包含角色版本、会话、分支与消息图；导入在新账号下重建新 ID，保留父子关系、响应组与分支 head；不包含密码、会话、API Key 或支付凭据。
 - **Web**：`/login`、`/register`、`/settings`（账号、导出/导入、outbox 状态）、`/characters`（真实云端角色 CRUD 与 CAS 冲突提示）、`/chat`（登录后加载云端会话、分页消息、发送用户消息、分支切换；未登录仍为本地演示）；导航按登录态显示账号。
 
-M1 **没有**：personas/lorebooks/presets/regex/memory 的专属 UI 与完整导入、ZIP/附件、实时推送、密码找回/邮箱验证、账号删除、备份恢复、模型调用、真实支付。outbox 尚未自动投递到 `/api/mutations`。
+M1 **没有**：personas/lorebooks/presets/regex/memory 的专属 UI 与完整导入、ZIP/附件、实时推送、密码找回/邮箱验证、账号删除、备份恢复、模型调用、真实支付。outbox 已支持在设置页手动投递到 `/api/mutations`；自动后台投递与冲突解决面板仍未完成。
 
 ---
 
@@ -67,7 +67,7 @@ M1 **没有**：personas/lorebooks/presets/regex/memory 的专属 UI 与完整�
   2. 按实体类型校验 payload、CAS、写实体、写 `sync_changes`、保存结果。
   3. 业务拒绝（404/409/无效 payload）作为 result 返回，不抛 500。
 - Dexie outbox 只保存 intent，不代表已保存；`opId` 重复入队返回同一行；5 次失败进入 failed。
-- **已知缺口**：Web 端 outbox 尚未自动投递到 `/api/mutations`；目前是队列与幂等语义完成，投递/冲突 UI 待下一刀。
+- **投递**：设置页可手动把 pending outbox 发往 `/api/mutations`；accepted/conflict/rejected 会更新本地状态。自动后台投递与冲突 diff 面板仍未完成。
 
 ### 导出/恢复
 
@@ -85,11 +85,11 @@ M1 **没有**：personas/lorebooks/presets/regex/memory 的专属 UI 与完整�
 | 命令                           | 结果                                                                                                  |
 | ------------------------------ | ----------------------------------------------------------------------------------------------------- |
 | `pnpm typecheck`               | **PASS**                                                                                              |
-| `pnpm lint`                    | **PASS**，148 files，0 错误                                                                           |
-| `pnpm test`（无 DATABASE_URL） | **PASS**，35 passed / 11 skipped                                                                      |
-| `DATABASE_URL=... pnpm test`   | **PASS**，**46 passed / 9 files**                                                                     |
-| `pnpm build`                   | **PASS**：Web JS 459.71 kB（gzip 143.43 kB），CSS 37.05 kB；API `server.js` 140.68 kB                 |
-| `pnpm e2e`                     | **PASS**，**14 passed / 4 skipped**（桌面 + Pixel 7，含跨设备云端消息）                               |
+| `pnpm lint`                    | **PASS**，152 files，0 错误                                                                           |
+| `pnpm test`（无 DATABASE_URL） | **PASS**，37 passed / 11 skipped                                                                      |
+| `DATABASE_URL=... pnpm test`   | **PASS**，**48 passed / 10 files**                                                                    |
+| `pnpm build`                   | **PASS**：Web JS 466.33 kB（gzip 145.06 kB），CSS 37.20 kB；API `server.js` 140.68 kB                 |
+| `pnpm e2e`                     | **PASS**，**16 passed / 4 skipped**（桌面 + Pixel 7，含跨设备云端消息与 H5 支付页）                   |
 | `docker compose build`         | **PASS**：api 297 MB，caddy 95 MB                                                                     |
 | `docker compose up -d --wait`  | **PASS**：db/api/caddy healthy                                                                        |
 | 全栈 Caddy 冒烟                | **PASS**：登录 200、`/me` 200、`POST /api/mutations` 200 accepted、`/api/export` 200、`/api/sync` 200 |
@@ -123,26 +123,26 @@ M1 **没有**：personas/lorebooks/presets/regex/memory 的专属 UI 与完整�
 
 ## RISK / 未完成
 
-| ID  | 项                                                                    | 影响                                   | 下一步                              |
-| --- | --------------------------------------------------------------------- | -------------------------------------- | ----------------------------------- |
-| R1  | ~~`/chat` 未接云端~~ **已关闭**：登录后已加载云端会话并支持双设备 E2E | —                                      | 已完成                              |
-| R2  | outbox 未自动投递到 `/api/mutations`                                  | 离线修改有队列但没有自动同步/冲突 UI   | 加 delivery adapter + conflict 面板 |
-| R3  | persona/lorebook/preset/regex/memory 无专属 UI；lore entries 未写入   | 这些实体只有 schema、mutation 与导出口 | M2 编辑器                           |
-| R4  | 导入跳过非角色/会话数组                                               | 导出可读但恢复不完整                   | 补导入与 round-trip fixture         |
-| R5  | JSON 导出全量在内存中                                                 | 大账号可能冲高 API 内存                | 流式/分片 + 上限                    |
-| R6  | 无 ZIP/附件/头像文件                                                  | 角色卡与媒体迁移不完整                 | M2/M4                               |
-| R7  | 无实时推送；sync 日志不裁剪；无 `resync_required`                     | 多端最终一致依赖拉取；日志无限增长     | 保留策略 + 过期重建                 |
-| R8  | 无邮箱验证、密码找回、账号删除、会话列表                              | 账号生命周期不完整                     | M1 收尾/M4                          |
-| R9  | 无 CSRF token，仅 SameSite=Lax + JSON 契约                            | 跨站写请求仍有残留风险                 | 加 Origin 校验/CSRF token           |
-| R10 | 无验证码/登录失败锁定                                                 | 暴力破解依赖限流                       | 风控与告警                          |
-| R11 | 未做 2C/2GiB 压测                                                     | 容量未知                               | M5                                  |
-| R12 | 法律文本仍为草案                                                      | 不能替代正式合规文本                   | 正式上线前                          |
+| ID  | 项                                                                    | 影响                                   | 下一步                      |
+| --- | --------------------------------------------------------------------- | -------------------------------------- | --------------------------- |
+| R1  | ~~`/chat` 未接云端~~ **已关闭**：登录后已加载云端会话并支持双设备 E2E | —                                      | 已完成                      |
+| R2  | outbox 无自动后台投递；冲突无 diff 面板                               | 设置页可手动同步，离线修改仍需用户触发 | 自动投递 + 冲突 UI          |
+| R3  | persona/lorebook/preset/regex/memory 无专属 UI；lore entries 未写入   | 这些实体只有 schema、mutation 与导出口 | M2 编辑器                   |
+| R4  | 导入跳过非角色/会话数组                                               | 导出可读但恢复不完整                   | 补导入与 round-trip fixture |
+| R5  | JSON 导出全量在内存中                                                 | 大账号可能冲高 API 内存                | 流式/分片 + 上限            |
+| R6  | 无 ZIP/附件/头像文件                                                  | 角色卡与媒体迁移不完整                 | M2/M4                       |
+| R7  | 无实时推送；sync 日志不裁剪；无 `resync_required`                     | 多端最终一致依赖拉取；日志无限增长     | 保留策略 + 过期重建         |
+| R8  | 无邮箱验证、密码找回、账号删除、会话列表                              | 账号生命周期不完整                     | M1 收尾/M4                  |
+| R9  | 无 CSRF token，仅 SameSite=Lax + JSON 契约                            | 跨站写请求仍有残留风险                 | 加 Origin 校验/CSRF token   |
+| R10 | 无验证码/登录失败锁定                                                 | 暴力破解依赖限流                       | 风控与告警                  |
+| R11 | 未做 2C/2GiB 压测                                                     | 容量未知                               | M5                          |
+| R12 | 法律文本仍为草案                                                      | 不能替代正式合规文本                   | 正式上线前                  |
 
 ---
 
 ## NEXT（M1 收尾 / 进入 M2 前）
 
-1. **outbox 投递**：把 pending 操作发往 `POST /api/mutations`，处理 accepted/conflict/rejected，冲突保留本地草稿并展示 diff。
+1. **outbox 自动化**：在手动同步之上加后台投递与冲突 diff 面板；冲突保留本地草稿，不静默覆盖。
 2. **补全实体导入**：personas/lorebooks/lore_entries/presets/regex/memory，以及导出/导入 round-trip fixtures。
 3. **云端聊天补充**：消息编辑/Swipe UI、tombstone 删除入口、未读/冲突提示；模型回复生成仍在 M3。
 4. **账号生命周期**：邮箱验证、密码找回、删除账号与聊天、会话列表/单会话撤销。

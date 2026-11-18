@@ -43,7 +43,7 @@
 ## 已知缺口（必须保持可见）
 
 - `/chat` 已接云端会话 API（会话列表、分页消息、发送用户消息、分支切换、双设备 E2E）；M3 前不生成角色回复。
-- outbox 尚未自动投递到 `/api/mutations`。
+- outbox 已支持设置页手动投递到 `/api/mutations`；自动后台投递与冲突 diff UI 仍未完成。
 - persona/lorebook/preset/regex/memory 无专属 UI；lore entries 不在 mutation 内。
 - 导入跳过非角色/会话数组。
 - 无实时推送、sync 日志裁剪、`resync_required`、CSRF token、邮箱验证、密码找回、账号删除。

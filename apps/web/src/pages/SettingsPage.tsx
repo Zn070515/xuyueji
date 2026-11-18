@@ -5,6 +5,7 @@ import { useAuth } from "../auth/AuthProvider.js";
 import { DemoDataNote, Eyebrow, GateBadge, PageHeader } from "../components/Primitives.js";
 import { exportAccountData, type ImportResult, importAccountData } from "../lib/account-api.js";
 import { pendingOutboxCount } from "../lib/outbox.js";
+import { type FlushOutboxResult, flushOutbox } from "../lib/outbox-sync.js";
 
 export function SettingsPage() {
   const { state, signOut, signOutAll } = useAuth();
@@ -13,6 +14,8 @@ export function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [outboxCount, setOutboxCount] = useState<number | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<FlushOutboxResult | null>(null);
 
   useEffect(() => {
     if (state.status !== "authenticated") {
@@ -22,6 +25,24 @@ export function SettingsPage() {
       .then(setOutboxCount)
       .catch(() => setOutboxCount(null));
   }, [state.status]);
+
+  async function syncOutbox() {
+    setSyncing(true);
+    setSyncResult(null);
+    setError(null);
+    try {
+      const result = await flushOutbox();
+      setSyncResult(result);
+      setOutboxCount(result.pending);
+      if (result.error) {
+        setError(`同步失败：${result.error}`);
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "同步失败。");
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   async function downloadExport() {
     setBusy("export");
@@ -244,6 +265,28 @@ export function SettingsPage() {
                 服务端 `/api/mutations` 已支持 persona、lorebook、preset、regex 与 memory 的 CAS
                 写入；角色与会话走各自的专用路由。
               </p>
+
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => void syncOutbox()}
+                  disabled={syncing || outboxCount === 0}
+                  className="inline-flex min-h-10 items-center rounded-full bg-moon-400 px-4 py-2 text-xs font-semibold text-night-950 hover:bg-moon-300 disabled:cursor-not-allowed disabled:bg-paper-50/10 disabled:text-mist-400"
+                >
+                  {syncing ? "正在同步…" : "同步本地队列"}
+                </button>
+                <span className="text-[11px] text-mist-400">
+                  当前为手动触发；自动后台投递在后续切片接入。
+                </span>
+              </div>
+
+              {syncResult ? (
+                <p className="mt-3 rounded-xl bg-paper-50/5 px-3 py-2 text-xs leading-6 text-mist-200">
+                  已接受 {syncResult.accepted} · 冲突 {syncResult.conflicts} · 失败{" "}
+                  {syncResult.failed} · 仍待同步 {syncResult.pending}
+                  {syncResult.error ? ` · ${syncResult.error}` : ""}
+                </p>
+              ) : null}
             </section>
           </div>
         ) : null}
