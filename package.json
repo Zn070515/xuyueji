@@ -22,6 +22,7 @@
     "user:create": "pnpm --filter @xuyueji/api exec tsx src/scripts/create-user.ts",
     "e2e": "playwright test -c apps/web/playwright.config.ts",
     "screenshots": "playwright test -c apps/web/playwright.config.ts --project=desktop screenshots.spec.ts",
+    "screenshots:h5": "playwright test -c apps/web/playwright.config.ts --project=mobile screenshots.spec.ts",
     "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm build"
   },
   "devDependencies": {

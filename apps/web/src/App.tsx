@@ -5,6 +5,7 @@ import { AuthProvider } from "./auth/AuthProvider.js";
 import { AppShell } from "./components/Layout.js";
 import { CharactersPage } from "./pages/CharactersPage.js";
 import { ChatPage } from "./pages/ChatPage.js";
+import { CheckoutPage } from "./pages/CheckoutPage.js";
 import { HelpPage } from "./pages/HelpPage.js";
 import { HomePage } from "./pages/HomePage.js";
 import { ContactPage, PrivacyPage, RefundsPage, TermsPage } from "./pages/LegalPages.js";
@@ -93,6 +94,7 @@ export function App() {
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/characters" element={<CharactersPage />} />
             <Route path="/wallet" element={<WalletPage />} />
+            <Route path="/wallet/checkout" element={<CheckoutPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/settings" element={<SettingsPage />} />

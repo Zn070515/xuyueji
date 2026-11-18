@@ -161,4 +161,13 @@ M1 更新后的真实截图（Playwright，本地 Vite + Fastify + PostgreSQL）
 - `artifacts/screenshots/chat.png` — 未登录时的本地聊天演示（登录后 `/chat` 切换为云端会话）
 - `artifacts/screenshots/home-mobile.png` — 手机首页
 
+支付宝 H5 审核截图（本地真实页面，支付按钮禁用）：
+
+- `artifacts/screenshots/h5-home.png` — 首页
+- `artifacts/screenshots/h5-service.png` — 积分套餐/服务页
+- `artifacts/screenshots/h5-payment.png` — 订单确认页（支付未开通）
+
+说明与重新生成命令见 [`docs/PAYMENT_MATERIALS.md`](docs/PAYMENT_MATERIALS.md)。站点尚未公开上线，
+表单中的 H5 状态应如实选择「未上线」，截图不等于站点已上线或支付已开通。
+
 E2E 的注册/云端角色/导出流程见 `apps/web/e2e/cloud.spec.ts`，运行输出保存在 CI artifact。

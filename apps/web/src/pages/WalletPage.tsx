@@ -106,7 +106,7 @@ export function WalletPage() {
         </section>
 
         <div className="space-y-5">
-          <section className="glass-card rounded-3xl p-5 sm:p-6">
+          <section id="packages" className="glass-card rounded-3xl p-5 sm:p-6">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <Eyebrow>充值套餐</Eyebrow>
@@ -141,6 +141,13 @@ export function WalletPage() {
               套餐金额与积分是展示草案，不构成要约。正式价格必须来自服务端带生效期的 tariff
               表，并经官方价格校验；当前页面不发起任何支付请求。
             </DemoDataNote>
+
+            <Link
+              to="/wallet/checkout"
+              className="mt-3 inline-flex min-h-10 items-center rounded-full border border-moon-400/40 px-4 py-2 text-xs text-moon-200 hover:bg-moon-400/10"
+            >
+              查看订单确认页（支付未开通）
+            </Link>
           </section>
 
           <section className="glass-card rounded-3xl p-5 sm:p-6">

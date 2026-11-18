@@ -76,14 +76,39 @@ test.describe("真实渲染页面截图", () => {
     });
   });
 
-  test("手机首页截图（额外证据）", async ({ page }, testInfo) => {
+  test("手机 H5 截图：首页 / 商品服务 / 支付页", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "mobile", "仅手机项目");
+
     await page.goto("/");
     await expect(page.getByRole("heading", { name: /续月记/ }).first()).toBeVisible();
     await stabilizeFullPage(page);
     await page.screenshot({
       path: path.join(screenshotDir, "home-mobile.png"),
       fullPage: true,
+      animations: "disabled",
+    });
+    await page.screenshot({
+      path: path.join(screenshotDir, "h5-home.png"),
+      fullPage: false,
+      animations: "disabled",
+    });
+
+    await page.goto("/wallet");
+    await expect(page.getByRole("heading", { name: /余额由服务端决定/ })).toBeVisible();
+    await expect(page.getByText("体验包").first()).toBeVisible();
+    await stabilizeFullPage(page);
+    await page.locator("#packages").screenshot({
+      path: path.join(screenshotDir, "h5-service.png"),
+      animations: "disabled",
+    });
+
+    await page.goto("/wallet/checkout");
+    await expect(page.getByRole("heading", { name: "确认积分订单" })).toBeVisible();
+    await expect(page.getByText("支付宝商户入驻与网站支付产品尚未获批")).toBeVisible();
+    await expect(page.getByRole("button", { name: "确认支付（未开通）" })).toBeDisabled();
+    await stabilizeFullPage(page);
+    await page.locator("#checkout-card").screenshot({
+      path: path.join(screenshotDir, "h5-payment.png"),
       animations: "disabled",
     });
   });

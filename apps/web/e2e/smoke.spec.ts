@@ -22,6 +22,13 @@ test("钱包页所有购买按钮都被禁用并给出原因", async ({ page }) 
   }
 });
 
+test("订单确认页真实渲染且支付按钮禁用", async ({ page }) => {
+  await page.goto("/wallet/checkout");
+  await expect(page.getByRole("heading", { name: "确认积分订单" })).toBeVisible();
+  await expect(page.getByText(/不会创建真实订单/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "确认支付（未开通）" })).toBeDisabled();
+});
+
 test("聊天页的回复明确标注为本地演示", async ({ page }) => {
   await page.goto("/chat");
   const input = page.getByLabel("输入消息");
