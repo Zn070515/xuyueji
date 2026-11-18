@@ -93,35 +93,41 @@ export function CloudChat() {
     [detail, selectedBranchId],
   );
 
-  const loadConversation = useCallback(async (conversationId: string) => {
-    setLoading(true);
-    setError(null);
-    setNotice(null);
-    try {
-      const nextDetail = await getConversation(conversationId);
-      const branchId = nextDetail.conversation.activeBranchId ?? nextDetail.branches[0]?.id ?? null;
-      setDetail(nextDetail);
-      setSelectedBranchId(branchId);
-      setActiveId(conversationId);
-      setPendingSend(null);
-      setDraft("");
+  const loadConversation = useCallback(
+    async (conversationId: string, options?: { preserveComposer?: boolean }) => {
+      setLoading(true);
+      setError(null);
+      setNotice(null);
+      try {
+        const nextDetail = await getConversation(conversationId);
+        const branchId =
+          nextDetail.conversation.activeBranchId ?? nextDetail.branches[0]?.id ?? null;
+        setDetail(nextDetail);
+        setSelectedBranchId(branchId);
+        setActiveId(conversationId);
+        if (!options?.preserveComposer) {
+          setPendingSend(null);
+          setDraft("");
+        }
 
-      if (branchId) {
-        const page = await listMessages({ conversationId, branchId, limit: 50 });
-        setMessages(page.messages);
-        setHasMore(page.hasMore);
-        setNextBefore(page.nextBefore);
-      } else {
-        setMessages([]);
-        setHasMore(false);
-        setNextBefore(null);
+        if (branchId) {
+          const page = await listMessages({ conversationId, branchId, limit: 50 });
+          setMessages(page.messages);
+          setHasMore(page.hasMore);
+          setNextBefore(page.nextBefore);
+        } else {
+          setMessages([]);
+          setHasMore(false);
+          setNextBefore(null);
+        }
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : "读取云端会话失败。");
+      } finally {
+        setLoading(false);
       }
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "读取云端会话失败。");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    [],
+  );
 
   useEffect(() => {
     let active = true;
@@ -245,8 +251,9 @@ export function CloudChat() {
       );
     } catch (cause) {
       if (cause instanceof ApiError && cause.status === 409) {
-        setError("另一台设备已经推进了这个分支。请重新加载后再发送。");
-        void loadConversation(activeId);
+        const message = "另一台设备已经推进了这个分支。已保留你的输入，请确认后重试发送。";
+        setError(message);
+        void loadConversation(activeId, { preserveComposer: true }).then(() => setError(message));
       } else {
         setError(cause instanceof Error ? cause.message : "发送失败。");
       }
@@ -472,7 +479,7 @@ export function CloudChat() {
             <p className="text-[11px] uppercase tracking-[0.2em] text-mist-400">跨设备</p>
             <p className="mt-2 text-xs leading-6 text-mist-300">
               同一账号在另一台设备打开此页，会从 PostgreSQL 拉取会话与消息。若另一台设备推进了分支，
-              本次发送会得到 409，页面保留输入并提示重新加载。
+              本次发送会得到 409；页面保留输入并自动刷新分支，确认后可重试发送。
             </p>
           </section>
 

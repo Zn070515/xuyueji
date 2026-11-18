@@ -200,6 +200,37 @@ describe("API boundaries", () => {
     ).rejects.toThrow(/only supports demo mode/i);
   });
 
+  it("blocks cross-origin mutations but allows same/configured origins", async () => {
+    const app = await makeApp();
+    try {
+      const evil = await app.inject({
+        method: "POST",
+        url: "/api/demo/payments/callback",
+        headers: { origin: "https://evil.example" },
+        payload: {},
+      });
+      expect(evil.statusCode).toBe(403);
+      expect(evil.json().error.code).toBe("ORIGIN_FORBIDDEN");
+
+      const configured = await app.inject({
+        method: "POST",
+        url: "/api/demo/payments/callback",
+        headers: { origin: "http://127.0.0.1:5173" },
+        payload: {},
+      });
+      expect(configured.statusCode).not.toBe(403);
+
+      const read = await app.inject({
+        method: "GET",
+        url: "/health",
+        headers: { origin: "https://evil.example" },
+      });
+      expect(read.statusCode).toBe(200);
+    } finally {
+      await app.close();
+    }
+  });
+
   it("returns a JSON 404 for unknown routes", async () => {
     const app = await makeApp();
     try {

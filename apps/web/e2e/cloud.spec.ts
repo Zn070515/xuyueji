@@ -36,6 +36,20 @@ test("a cloud message is visible on a second device", async ({ page, browser }, 
     await pageB.goto("/chat");
     await expect(pageB.getByRole("heading", { name: "云端会话与跨设备存档。" })).toBeVisible();
     await expect(pageB.getByText(message)).toBeVisible({ timeout: 15_000 });
+
+    await pageB.locator("#cloud-chat-input").fill("B 追加消息");
+    await pageB.getByRole("button", { name: "发送到云端" }).click();
+    await expect(pageB.getByText("B 追加消息")).toBeVisible();
+
+    // Device A still has the old branch revision. Its write must conflict,
+    // keep the draft, and allow an idempotent retry after refreshing.
+    await page.locator("#cloud-chat-input").fill("A 的草稿");
+    await page.getByRole("button", { name: "发送到云端" }).click();
+    await expect(page.getByText(/另一台设备已经推进了这个分支/)).toBeVisible();
+    await expect(page.locator("#cloud-chat-input")).toHaveValue("A 的草稿");
+    await page.getByRole("button", { name: "重试发送" }).click();
+    await expect(page.getByText("A 的草稿")).toBeVisible();
+    await expect(page.getByText("B 追加消息").first()).toBeVisible();
   } finally {
     await contextB.close();
   }
