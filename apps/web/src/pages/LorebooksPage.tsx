@@ -30,6 +30,7 @@ interface EntryForm {
   constant: boolean;
   probability: number;
   position: LorebookEntryDto["rule"]["position"];
+  depth: number;
   scanDepth: number;
   recursive: boolean;
   enabled: boolean;
@@ -47,6 +48,7 @@ const EMPTY_FORM: EntryForm = {
   constant: false,
   probability: 1,
   position: "after_char",
+  depth: 4,
   scanDepth: 4,
   recursive: false,
   enabled: true,
@@ -80,6 +82,7 @@ function entryToForm(entry: LorebookEntryDto): EntryForm {
     constant: entry.rule.constant,
     probability: entry.rule.probability,
     position: entry.rule.position,
+    depth: entry.rule.depth,
     scanDepth: entry.rule.scanDepth,
     recursive: entry.rule.recursive,
     enabled: entry.enabled,
@@ -100,6 +103,7 @@ function formToInput(form: EntryForm): LorebookEntryInput {
     constant: form.constant,
     probability: Math.min(1, Math.max(0, Number.isFinite(form.probability) ? form.probability : 1)),
     position: form.position,
+    depth: Math.max(0, Math.floor(form.depth)),
     scanDepth: Math.max(0, Math.floor(form.scanDepth)),
     recursive: form.recursive,
     enabled: form.enabled,
@@ -409,7 +413,10 @@ export function LorebooksPage() {
                                 {" · "}
                                 概率 {entry.rule.probability}
                                 {" · "}
-                                depth {entry.rule.scanDepth}
+                                扫描 {entry.rule.scanDepth}
+                                {entry.rule.position === "at_depth"
+                                  ? ` · 插入深度 ${entry.rule.depth}`
+                                  : ""}
                               </p>
                             </div>
                             <div className="flex shrink-0 gap-2">
@@ -632,6 +639,27 @@ export function LorebooksPage() {
                             className="mt-1 min-h-10 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-night-900"
                           />
                         </div>
+                        {form.position === "at_depth" ? (
+                          <div>
+                            <label htmlFor="lore-depth" className="text-xs text-slate-500">
+                              插入深度（从对话末尾数）
+                            </label>
+                            <input
+                              id="lore-depth"
+                              type="number"
+                              min={0}
+                              max={50}
+                              value={form.depth}
+                              onChange={(event) =>
+                                setForm((current) => ({
+                                  ...current,
+                                  depth: Number(event.target.value),
+                                }))
+                              }
+                              className="mt-1 min-h-10 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-night-900"
+                            />
+                          </div>
+                        ) : null}
                         <div>
                           <label htmlFor="lore-sort-key" className="text-xs text-slate-500">
                             排序

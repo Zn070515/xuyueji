@@ -556,6 +556,7 @@ export const lorebookRuleDtoSchema = z.object({
   constant: z.boolean(),
   probability: z.number().min(0).max(1),
   position: lorePositionSchema,
+  depth: z.number().int().nonnegative(),
   scanDepth: z.number().int().nonnegative(),
   recursive: z.boolean(),
 });
@@ -613,6 +614,7 @@ export const lorebookEntryInputSchema = z
     constant: z.boolean().default(false),
     probability: z.number().min(0).max(1).default(1),
     position: lorePositionSchema.default("after_char"),
+    depth: z.number().int().min(0).max(50).default(0),
     scanDepth: z.number().int().min(0).max(50).default(4),
     recursive: z.boolean().default(false),
     enabled: z.boolean().default(true),

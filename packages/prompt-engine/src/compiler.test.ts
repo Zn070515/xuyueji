@@ -181,3 +181,43 @@ describe("prompt memory components", () => {
     );
   });
 });
+
+describe("at_depth world info", () => {
+  it("injects lore into messages instead of the system prompt", () => {
+    const plan = compilePrompt({
+      sources: sources({
+        history: [
+          { role: "user", content: "H1" },
+          { role: "assistant", content: "H2" },
+        ],
+        userInput: "U",
+        worldInfo: [{ id: "deep", content: "DEEP", position: "at_depth", depth: 1 }],
+      }),
+      budget: { contextWindowTokens: 8000, maxOutputTokens: 400 },
+      seed: 1,
+    });
+    expect(plan.systemPrompt).not.toContain("DEEP");
+    expect(plan.messages.map((message) => message.content)).toEqual([
+      "H1",
+      "H2",
+      "[世界书设定：deep]\nDEEP",
+      "U",
+    ]);
+  });
+
+  it("depth 0 appends after the user input", () => {
+    const plan = compilePrompt({
+      sources: sources({
+        history: [{ role: "user", content: "H1" }],
+        userInput: "U",
+        worldInfo: [{ id: "tail", content: "TAIL", position: "at_depth", depth: 0 }],
+      }),
+      budget: { contextWindowTokens: 8000, maxOutputTokens: 400 },
+      seed: 1,
+    });
+    expect(plan.messages.at(-1)).toEqual({
+      role: "user",
+      content: "[世界书设定：tail]\nTAIL",
+    });
+  });
+});

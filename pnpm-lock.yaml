@@ -251,6 +251,9 @@ importers:
       '@xuyueji/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@xuyueji/tavern-core':
+        specifier: workspace:*
+        version: link:../../packages/tavern-core
       dexie:
         specifier: ^4.4.7
         version: 4.4.7

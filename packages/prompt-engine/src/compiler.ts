@@ -64,6 +64,8 @@ export interface PromptWorldInfoInput {
     | "after_examples"
     | "at_depth";
   readonly insertionOrder?: number;
+  /** Insertion depth counted from the end; only used for `at_depth`. */
+  readonly depth?: number;
 }
 
 export interface PromptSources {
@@ -393,18 +395,60 @@ export function compilePrompt(options: PromptCompileOptions): PromptPlan {
     };
   });
 
+  const atDepthIds = new Set(
+    (options.sources.worldInfo ?? [])
+      .filter((entry) => entry.position === "at_depth")
+      .map((entry) => entry.id),
+  );
   const systemPrompt = components
     .filter(
       (component) =>
-        component.included && component.kind !== "history" && component.kind !== "user_input",
+        component.included &&
+        component.kind !== "history" &&
+        component.kind !== "user_input" &&
+        !(component.kind === "world_info" && atDepthIds.has(component.sourceId)),
     )
     .map((component) => component.content)
     .join("\n\n");
 
-  const messages: PromptHistoryMessage[] = [
+  const baseMessages: PromptHistoryMessage[] = [
     ...(options.sources.history ?? []).filter((_message, index) => included.has(historyKey(index))),
     { role: "user", content: options.sources.userInput },
   ];
+  // `at_depth` lore is injected into the message list, not the system prompt.
+  // Depth counts messages from the end; depth 0 appends after the user input.
+  const depthBuckets = new Map<number, string[]>();
+  const depthEntries = (options.sources.worldInfo ?? [])
+    .filter(
+      (entry) =>
+        entry.position === "at_depth" &&
+        entry.content.trim().length > 0 &&
+        included.has(componentKey({ kind: "world_info", sourceId: entry.id })),
+    )
+    .sort(
+      (left, right) =>
+        (left.insertionOrder ?? 0) - (right.insertionOrder ?? 0) || left.id.localeCompare(right.id),
+    );
+  for (const entry of depthEntries) {
+    const index = Math.min(
+      baseMessages.length,
+      Math.max(0, baseMessages.length - Math.max(0, entry.depth ?? 0)),
+    );
+    const bucket = depthBuckets.get(index) ?? [];
+    bucket.push(`[世界书设定：${entry.id}]
+${entry.content}`);
+    depthBuckets.set(index, bucket);
+  }
+  const messages: PromptHistoryMessage[] = [];
+  for (const [index, message] of baseMessages.entries()) {
+    for (const content of depthBuckets.get(index) ?? []) {
+      messages.push({ role: "user", content });
+    }
+    messages.push(message);
+  }
+  for (const content of depthBuckets.get(baseMessages.length) ?? []) {
+    messages.push({ role: "user", content });
+  }
 
   const estimatedInputTokens = components
     .filter((component) => component.included)
