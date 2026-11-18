@@ -14,6 +14,7 @@ import { LorebooksPage } from "./pages/LorebooksPage.js";
 import { NotFoundPage } from "./pages/NotFoundPage.js";
 import { PersonasPage } from "./pages/PersonasPage.js";
 import { PlannedPage } from "./pages/PlannedPage.js";
+import { PresetsPage } from "./pages/PresetsPage.js";
 import { RegisterPage } from "./pages/RegisterPage.js";
 import { SettingsPage } from "./pages/SettingsPage.js";
 import { WalletPage } from "./pages/WalletPage.js";
@@ -28,20 +29,6 @@ function ScrollToTop() {
 }
 
 const PLANNED_PAGES = {
-  presets: {
-    eyebrow: "预设 / Presets",
-    title: "把 Prompt 变成可解释的编排。",
-    description:
-      "预设排序、启停、插入深度、作者注释、最终 Prompt 预览与 Token 明细；宏与正则有界执行。",
-    gate: "M2",
-    planned: [
-      "Prompt Manager 与组件排序",
-      "受限宏白名单解释器",
-      "分阶段正则流水线与超时约束",
-      "最终 Prompt 预览与 token 明细",
-      "预设/正则导入导出",
-    ],
-  },
   memories: {
     eyebrow: "记忆 / Memories",
     title: "记住发生过的事，也记得它从哪来。",
@@ -93,7 +80,7 @@ export function App() {
             <Route path="/refunds" element={<RefundsPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/lorebooks" element={<LorebooksPage />} />
-            <Route path="/presets" element={<PlannedPage {...PLANNED_PAGES.presets} />} />
+            <Route path="/presets" element={<PresetsPage />} />
             <Route path="/memories" element={<PlannedPage {...PLANNED_PAGES.memories} />} />
             <Route path="/admin" element={<PlannedPage {...PLANNED_PAGES.admin} />} />
             <Route path="*" element={<NotFoundPage />} />

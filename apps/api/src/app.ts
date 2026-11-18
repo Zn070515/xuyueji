@@ -24,6 +24,7 @@ import { lorebookRoutes } from "./routes/lorebooks.js";
 import { metaRoutes } from "./routes/meta.js";
 import { mutationRoutes } from "./routes/mutations.js";
 import { personaRoutes } from "./routes/personas.js";
+import { presetRoutes } from "./routes/presets.js";
 import { promptRoutes } from "./routes/prompt.js";
 import { syncRoutes } from "./routes/sync.js";
 
@@ -246,6 +247,9 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     });
     await app.register(personaRoutes({ db: database.db, auth }), {
       prefix: "/api/personas",
+    });
+    await app.register(presetRoutes({ db: database.db, auth }), {
+      prefix: "/api/presets",
     });
     await app.register(conversationRoutes({ db: database.db, auth }), {
       prefix: "/api/conversations",

@@ -5,6 +5,7 @@ import type {
   LorebookSummaryDto,
   MessageDto,
   PersonaSummaryDto,
+  PresetSummaryDto,
   PromptPreviewResponse,
 } from "@xuyueji/contracts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -21,6 +22,7 @@ import {
 import { ApiError } from "../lib/http.js";
 import { listLorebooks } from "../lib/lorebooks-api.js";
 import { listPersonas } from "../lib/personas-api.js";
+import { listPresets } from "../lib/presets-api.js";
 import { previewPrompt } from "../lib/prompt-api.js";
 import { DemoDataNote, GateBadge, PageHeader } from "./Primitives.js";
 
@@ -104,6 +106,8 @@ export function CloudChat() {
   const [selectedLorebookIds, setSelectedLorebookIds] = useState<string[]>([]);
   const [personas, setPersonas] = useState<PersonaSummaryDto[]>([]);
   const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(null);
+  const [presets, setPresets] = useState<PresetSummaryDto[]>([]);
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
   const [promptPreview, setPromptPreview] = useState<PromptPreviewResponse | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -207,6 +211,15 @@ export function CloudChat() {
       })
       .catch(() => {
         // Persona is optional for the preview.
+      });
+    listPresets()
+      .then((result) => {
+        if (active) {
+          setPresets(result.presets);
+        }
+      })
+      .catch(() => {
+        // Presets are optional for the preview.
       });
     return () => {
       active = false;
@@ -353,6 +366,7 @@ export function CloudChat() {
         userInput: input,
         ...(selectedLorebookIds.length > 0 ? { lorebookIds: selectedLorebookIds } : {}),
         ...(selectedPersonaId ? { personaId: selectedPersonaId } : {}),
+        ...(selectedPresetId ? { presetId: selectedPresetId } : {}),
         maxOutputTokens: 800,
         contextWindowTokens: 8192,
         seed: 1,
@@ -600,6 +614,35 @@ export function CloudChat() {
                       className="ml-1 text-moon-300 underline underline-offset-4"
                       to="/personas"
                     >
+                      创建
+                    </Link>
+                  </p>
+                ) : null}
+
+                <label htmlFor="prompt-preset" className="mt-3 block text-[11px] text-mist-400">
+                  预设（可选）
+                </label>
+                <select
+                  id="prompt-preset"
+                  value={selectedPresetId ?? ""}
+                  onChange={(event) => {
+                    setSelectedPresetId(event.target.value || null);
+                    setPromptPreview(null);
+                  }}
+                  className="mt-1 min-h-10 w-full rounded-xl border hairline bg-night-950/60 px-2 py-1.5 text-xs text-paper-50"
+                >
+                  <option value="">不使用预设</option>
+                  {presets.map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {preset.title} · r{preset.revision}
+                      {preset.enabled ? "" : "（停用）"}
+                    </option>
+                  ))}
+                </select>
+                {presets.length === 0 ? (
+                  <p className="mt-1 text-[10px] leading-5 text-mist-500">
+                    还没有预设。
+                    <Link className="ml-1 text-moon-300 underline underline-offset-4" to="/presets">
                       创建
                     </Link>
                   </p>

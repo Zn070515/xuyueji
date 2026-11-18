@@ -142,6 +142,51 @@ test("persona is selectable in the prompt preview", async ({ page }, testInfo) =
   await expect(page.getByText("用户人格：E2E Persona")).toBeVisible();
 });
 
+test("preset sections are selectable in the prompt preview", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "预设流程只需在桌面项目跑一次");
+
+  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const email = `preset-${suffix}@example.com`;
+  const password = "correct horse battery staple";
+
+  await page.goto("/register");
+  await page.getByLabel("显示名称").fill("预设用户");
+  await page.getByLabel("邮箱").fill(email);
+  await page.getByLabel(/密码（至少 12 位）/).fill(password);
+  await page.getByLabel(/我确认已年满/).check();
+  await page.getByRole("button", { name: "创建账号" }).click();
+  await expect(page).toHaveURL(/\/settings$/);
+
+  await page.goto("/presets");
+  await expect(page.getByRole("heading", { name: "把系统提示编排成可复用的预设。" })).toBeVisible();
+  await page.locator("#preset-title").fill("E2E 预设");
+  await page.getByRole("button", { name: "创建" }).click();
+  await expect(page.locator("#preset-edit-title")).toHaveValue("E2E 预设");
+  await page.getByRole("button", { name: "添加段落" }).click();
+  await page.getByLabel("段落标题").fill("风格");
+  await page.getByLabel("内容").fill("预设内容：用简洁的句子。");
+  await page.getByRole("button", { name: "保存为新版本" }).click();
+  await expect(page.getByText(/预设已保存为版本\s*2/)).toBeVisible();
+
+  await page.goto("/characters");
+  await page.locator("#character-name").fill("预设测试角色");
+  await page.locator("#character-description").fill("用于预设预览");
+  await page.getByRole("button", { name: "创建并保存到云端" }).click();
+  await expect(page.getByRole("heading", { name: "预设测试角色" })).toBeVisible();
+
+  await page.goto("/chat");
+  await page.getByRole("button", { name: "新建云端会话" }).click();
+  await page.locator("#cloud-chat-input").fill("你好。");
+  await page.getByRole("button", { name: "发送到云端" }).click();
+  await expect(page.getByText("你好。")).toBeVisible();
+
+  await page.locator("#prompt-preset").selectOption({ index: 1 });
+  await page.getByRole("button", { name: "生成 Prompt 预览" }).click();
+  await expect(page.getByText(/digest/)).toBeVisible();
+  await page.getByText("查看 systemPrompt").click();
+  await expect(page.getByText("预设内容：用简洁的句子。")).toBeVisible();
+});
+
 test("register, save a cloud character version and export", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "云端流程只需在桌面项目跑一次");
 
