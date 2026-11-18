@@ -12,8 +12,9 @@
 - **M1 Gate：基本达成，带明确缺口**。账号/对象授权、角色 CAS、消息图分页、同步游标、
   Dexie outbox（手动投递）、JSON 导出/恢复、跨设备聊天已跑通；账号生命周期、自动 outbox、
   完整 ZIP/备份仍未完成。
-- **M2：未达 Gate，只完成第一段**。角色卡 V2/V3、世界书触发、Prompt 编译器与预览端点已落地；
-  正则、记忆、Preset Manager、群聊、宏/快捷命令、Prompt 预览 UI 尚未完成。
+- **M2：未达 Gate，但核心编辑器路径已贯通**。角色卡 V2/V3、世界书 CRUD/触发、
+  Prompt 编译器、预览端点与云端聊天 Prompt 预览面板已落地；正则、记忆、Preset Manager、
+  群聊、宏/快捷命令尚未完成。
 - **不是 V1.0 可发布状态**：没有 DeepSeek 调用、没有真实支付、没有完成 ICP/AI/支付宝手续，
   站点未公开上线。
 
@@ -51,8 +52,8 @@
 | F05 | 角色卡字段/版本                    | 部分：CRUD/版本/CAS；完整字段 UI 未做完                       |
 | F06 | V2/V3 JSON/PNG 导入导出            | 部分：JSON/PNG 导入、JSON 导出；PNG 导出/头像缺失             |
 | F07 | Persona                            | 部分：schema、Prompt 预览请求可带 Persona；无 CRUD UI         |
-| F08 | 世界书                             | 部分：触发/递归/预算引擎；无 CRUD UI/正则                     |
-| F09 | Prompt Manager                     | 部分：编译器与预览 API；无 UI/预设 CRUD                       |
+| F08 | 世界书                             | 部分：CRUD/触发/递归/预算；正则未实现                         |
+| F09 | Prompt Manager                     | 部分：编译器 + 云端聊天预览；预设 CRUD/排序 UI 未做           |
 | F10 | 宏与变量                           | 未开始                                                        |
 | F11 | 正则                               | schema 占位；引擎未实现                                       |
 | F12 | Quick Reply/命令                   | 未开始                                                        |
@@ -82,6 +83,21 @@
    - 修：非 GET/HEAD/OPTIONS 请求若带 Origin，必须来自配置的 CORS origin 或同 Host；
      无 Origin 的服务端调用/webhook 放行。新增 403 `ORIGIN_FORBIDDEN` 测试。
    - 仍建议后续加 CSRF token + 导出二次认证。
+
+## 后续 review 修复（2026-11-18 P1）
+
+1. **普通聊天禁止 `system` 角色**
+   - `appendMessageRequestSchema.role` 改为 `z.literal("user")`；公开 API 不再接受 `system`。
+   - 路由固定 `role: "user"` 与 `actorRef: {kind:"user"}`。
+   - 历史中的 `system` 行（导入/旧数据）在 Prompt 预览中降级为 `role:"user"`，内容加
+     `[用户提供的系统消息]` 前缀，并返回 warning；不得冒充平台策略。
+   - 回归：公开 API 提交 `role:"system"` → 400；系统历史不进入 `systemPrompt`。
+
+2. **Prompt 加载器过滤软删除**
+   - 先校验 `lorebooks.deletedAt IS NULL`，再只加载 `lore_entries.deletedAt IS NULL` 的条目。
+   - 回归：删除条目 → 预览不再命中；删除整本世界书 → 旧引用不再命中。
+
+> 这两项修复后，`docs/REVIEW_M1_M2.md` 的 F08/F09 状态也已按实际代码更新。
 
 ## 测试证据
 

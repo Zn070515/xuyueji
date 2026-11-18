@@ -23,6 +23,9 @@
    - `POST /api/prompt/preview`：认证后加载角色 active version、分支最近 50 条消息、可选 lorebook entries，执行世界书匹配 + 编译。
    - 只读预览，不调用模型；客户端不能提交可信 prompt/价格/安全级别。
    - 预算超限 422 `PROMPT_BUDGET_EXCEEDED`，附 required/available。
+   - 世界书加载先校验 book 未软删除，再排除 `lore_entries.deletedAt` 非空条目。
+   - 公开聊天只接受 `role:"user"`；历史中的 `system` 行在预览中降级为带
+     `[用户提供的系统消息]` 前缀的 user 内容，不能进入平台策略。
 
 4. **边界**
    - 世界书条目来自 DB，但 `rule_jsonb` 仍是不可信输入：无效规则跳过并 warning。

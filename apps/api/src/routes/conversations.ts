@@ -121,10 +121,7 @@ export function conversationRoutes(options: {
       const session = requireSession(request);
       const { conversationId } = conversationParamsSchema.parse(request.params);
       const body = appendMessageRequestSchema.parse(request.body);
-      const actorRef =
-        body.role === "system"
-          ? ({ kind: "system", id: "platform" } as const)
-          : ({ kind: "user", id: session.userId } as const);
+      const actorRef = { kind: "user", id: session.userId } as const;
 
       const result = await appendMessage(db, {
         ownerUserId: session.userId,
@@ -132,7 +129,7 @@ export function conversationRoutes(options: {
         branchId: body.branchId,
         expectedBranchRevision: body.expectedBranchRevision,
         parentId: body.parentId,
-        role: body.role,
+        role: "user",
         actorRef,
         content: body.content,
         responseGroupId: body.responseGroupId,

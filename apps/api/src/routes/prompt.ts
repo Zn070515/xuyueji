@@ -2,14 +2,14 @@ import type { PromptPreviewResponse } from "@xuyueji/contracts";
 import { promptPreviewRequestSchema } from "@xuyueji/contracts";
 import { compilePrompt, type PromptSources } from "@xuyueji/prompt-engine";
 import { matchWorldInfo, type WorldInfoEntry, type WorldInfoLimits } from "@xuyueji/tavern-core";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 
 import { requireAuth, requireSession } from "../auth/guard.js";
 import type { AuthService } from "../auth/service.js";
 import type { Database } from "../db/client.js";
-import { loreEntries } from "../db/schema.js";
+import { lorebooks, loreEntries } from "../db/schema.js";
 import { getCharacter } from "../repositories/characters.js";
 import { listMessagePath } from "../repositories/conversations.js";
 
@@ -97,33 +97,64 @@ export function promptRoutes(options: {
         });
       }
 
+      const warnings: string[] = [];
+      let systemHistoryCount = 0;
       const history = page.messages
         .filter((message) => message.tombstoneAt === null)
-        .map((message) => ({ role: message.role, content: message.content }));
+        .map((message) => {
+          if (message.role === "system") {
+            // Imported/legacy history may contain system-role rows. They are
+            // user-provided data, never platform policy.
+            systemHistoryCount += 1;
+            return {
+              role: "user" as const,
+              content: `[用户提供的系统消息]\n${message.content}`,
+            };
+          }
+          return { role: message.role, content: message.content };
+        });
+      if (systemHistoryCount > 0) {
+        warnings.push(
+          `${systemHistoryCount} history system message(s) were treated as user-provided content.`,
+        );
+      }
 
-      const warnings: string[] = [];
       let entries: WorldInfoEntry[] = [];
       if (body.lorebookIds && body.lorebookIds.length > 0) {
-        const rows = await db
-          .select()
-          .from(loreEntries)
+        const ownedBooks = await db
+          .select({ id: lorebooks.id })
+          .from(lorebooks)
           .where(
             and(
-              eq(loreEntries.ownerUserId, session.userId),
-              inArray(loreEntries.lorebookId, body.lorebookIds),
+              eq(lorebooks.ownerUserId, session.userId),
+              inArray(lorebooks.id, body.lorebookIds),
+              isNull(lorebooks.deletedAt),
             ),
           );
-        for (const row of rows) {
-          const entry = toWorldInfoEntry(row);
-          if (entry) {
-            entries.push(entry);
-          } else {
-            warnings.push(
-              `World info entry ${row.id} has an invalid rule payload and was skipped.`,
+        const allowedBookIds = ownedBooks.map((book) => book.id);
+        if (allowedBookIds.length > 0) {
+          const rows = await db
+            .select()
+            .from(loreEntries)
+            .where(
+              and(
+                eq(loreEntries.ownerUserId, session.userId),
+                inArray(loreEntries.lorebookId, allowedBookIds),
+                isNull(loreEntries.deletedAt),
+              ),
             );
+          for (const row of rows) {
+            const entry = toWorldInfoEntry(row);
+            if (entry) {
+              entries.push(entry);
+            } else {
+              warnings.push(
+                `World info entry ${row.id} has an invalid rule payload and was skipped.`,
+              );
+            }
           }
+          entries = entries.filter((entry) => entry.enabled);
         }
-        entries = entries.filter((entry) => entry.enabled);
       }
 
       const world = matchWorldInfo(
