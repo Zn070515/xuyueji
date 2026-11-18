@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { SyncMutationEnvelope, SyncMutationResult } from "@xuyueji/contracts";
+import { compileSafeRegex } from "@xuyueji/tavern-core";
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
@@ -39,6 +40,7 @@ const regexPayloadSchema = z
     stage: z.enum(["user_input", "prompt_build", "model_output", "display_only"]),
     pattern: z.string().min(1).max(2_000),
     flags: z.string().max(10).optional(),
+    replacement: z.string().max(10_000).optional(),
     sortOrder: z.number().int().nonnegative().optional(),
     enabled: z.boolean().optional(),
   })
@@ -472,6 +474,15 @@ async function upsertRegexRule(
   if (!payload.success) {
     return rejected(mutation.opId, "INVALID_PAYLOAD", "Regex rule payload is invalid.");
   }
+  try {
+    compileSafeRegex(payload.data.pattern, payload.data.flags ?? "");
+  } catch {
+    return rejected(
+      mutation.opId,
+      "INVALID_PATTERN",
+      "Regex pattern is outside the supported safe subset.",
+    );
+  }
 
   if (mutation.expectedRevision === null) {
     const [existing] = await tx
@@ -490,6 +501,7 @@ async function upsertRegexRule(
       stage: payload.data.stage,
       pattern: payload.data.pattern,
       flags: payload.data.flags ?? "",
+      replacement: payload.data.replacement ?? "",
       sortOrder: payload.data.sortOrder ?? 0,
       enabled: payload.data.enabled ?? true,
       createdAt: now,
@@ -531,6 +543,7 @@ async function upsertRegexRule(
       stage: payload.data.stage,
       pattern: payload.data.pattern,
       flags: payload.data.flags ?? row.flags,
+      replacement: payload.data.replacement ?? row.replacement,
       sortOrder: payload.data.sortOrder ?? row.sortOrder,
       enabled: payload.data.enabled ?? row.enabled,
       revision,

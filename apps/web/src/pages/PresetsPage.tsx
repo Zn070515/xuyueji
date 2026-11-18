@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthProvider.js";
 import { DemoDataNote, Eyebrow, GateBadge, PageHeader } from "../components/Primitives.js";
+import { RegexRulesPanel } from "../components/RegexRulesPanel.js";
 import { ApiError } from "../lib/http.js";
 import {
   createPreset,
@@ -457,6 +458,8 @@ export function PresetsPage() {
             </section>
           </div>
         ) : null}
+
+        {state.status === "authenticated" ? <RegexRulesPanel /> : null}
       </div>
     </div>
   );

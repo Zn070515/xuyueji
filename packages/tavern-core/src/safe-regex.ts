@@ -224,7 +224,11 @@ class Parser {
             );
           }
         }
-        const index = capturing ? (this.groupCount += 1) : null;
+        let index: number | null = null;
+        if (capturing) {
+          this.groupCount += 1;
+          index = this.groupCount;
+        }
         const node = this.parseAlternation();
         if (this.peek() !== ")") {
           throw new SafeRegexError("invalid-pattern", "Unterminated group.");

@@ -724,6 +724,7 @@ export const promptPreviewRequestSchema = z
     lorebookIds: z.array(z.uuid()).max(20).optional(),
     personaId: z.uuid().optional(),
     presetId: z.uuid().optional(),
+    regexRuleIds: z.array(z.uuid()).max(50).optional(),
     persona: z
       .object({
         name: z.string().min(1).max(120),
@@ -752,6 +753,22 @@ export const worldInfoSkipDtoSchema = z.object({
   reason: z.string(),
 });
 
+export const regexApplicationDtoSchema = z.object({
+  ruleId: z.string(),
+  title: z.string(),
+  stage: regexStageSchema,
+  matchCount: z.number().int().nonnegative(),
+  steps: z.number().int().nonnegative(),
+});
+
+export type RegexApplicationDto = z.infer<typeof regexApplicationDtoSchema>;
+
+export const regexSkippedDtoSchema = z.object({
+  ruleId: z.string(),
+  title: z.string(),
+  reason: z.string(),
+});
+
 export const promptPreviewResponseSchema = z.object({
   plan: promptPlanDtoSchema,
   worldInfo: z.object({
@@ -760,6 +777,12 @@ export const promptPreviewResponseSchema = z.object({
     warnings: z.array(z.string()),
     totalEstimatedTokens: z.number().int().nonnegative(),
     totalBytes: z.number().int().nonnegative(),
+  }),
+  regex: z.object({
+    applied: z.array(regexApplicationDtoSchema),
+    skipped: z.array(regexSkippedDtoSchema),
+    deferred: z.array(regexSkippedDtoSchema),
+    transformedInput: z.string(),
   }),
 });
 export type PromptPreviewResponse = z.infer<typeof promptPreviewResponseSchema>;
