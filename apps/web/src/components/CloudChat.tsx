@@ -112,6 +112,7 @@ export function CloudChat() {
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
   const [regexRules, setRegexRules] = useState<RegexRuleDto[]>([]);
   const [selectedRegexRuleIds, setSelectedRegexRuleIds] = useState<string[]>([]);
+  const [autoMemory, setAutoMemory] = useState(false);
   const [promptPreview, setPromptPreview] = useState<PromptPreviewResponse | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -381,6 +382,7 @@ export function CloudChat() {
         ...(selectedPersonaId ? { personaId: selectedPersonaId } : {}),
         ...(selectedPresetId ? { presetId: selectedPresetId } : {}),
         ...(selectedRegexRuleIds.length > 0 ? { regexRuleIds: selectedRegexRuleIds } : {}),
+        ...(autoMemory ? { autoMemory: true } : {}),
         maxOutputTokens: 800,
         contextWindowTokens: 8192,
         seed: 1,
@@ -742,6 +744,18 @@ export function CloudChat() {
                   </fieldset>
                 )}
 
+                <label className="mt-3 flex items-center gap-2 text-[11px] text-mist-300">
+                  <input
+                    type="checkbox"
+                    checked={autoMemory}
+                    onChange={(event) => {
+                      setAutoMemory(event.target.checked);
+                      setPromptPreview(null);
+                    }}
+                  />
+                  启用长期记忆检索（按当前输入）
+                </label>
+
                 <button
                   type="button"
                   onClick={() => void handlePreview()}
@@ -771,6 +785,20 @@ export function CloudChat() {
                       {promptPreview.plan.reservedOutputTokens} reserved output
                     </p>
                     <p>世界书命中 {promptPreview.worldInfo.activated.length} 条</p>
+                    <p>记忆注入 {promptPreview.memory.selected.length} 条</p>
+                    {promptPreview.memory.selected.length > 0 ? (
+                      <ul className="max-h-20 space-y-0.5 overflow-auto text-[10px] text-mist-400">
+                        {promptPreview.memory.selected.map((memory) => (
+                          <li key={memory.id} className="truncate">
+                            {memory.reason === "locked" ? "🔒 " : ""}
+                            {memory.content}
+                            <span className="ml-1 text-mist-500">
+                              {memory.matchedTerms.slice(0, 3).join("/")}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
                     <p>
                       正则生效 {promptPreview.regex.applied.length} 条
                       {promptPreview.regex.skipped.length > 0

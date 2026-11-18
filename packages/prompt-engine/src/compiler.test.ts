@@ -161,3 +161,23 @@ describe("prompt budget", () => {
     expect(plan.warnings.join(" ")).toMatch(/optional prompt component/);
   });
 });
+
+describe("prompt memory components", () => {
+  it("injects memories before world info and keeps them optional", () => {
+    const plan = compilePrompt({
+      sources: sources({
+        memories: [{ id: "m1", content: "记忆：主角怕水。", kind: "manual_fact" }],
+        worldInfo: [{ id: "w1", content: "世界书：雨夜书店。" }],
+      }),
+      budget: { contextWindowTokens: 8000, maxOutputTokens: 400 },
+      seed: 1,
+    });
+    const includedKinds = plan.components.filter((item) => item.included).map((item) => item.kind);
+    expect(includedKinds.indexOf("memory")).toBeGreaterThan(-1);
+    expect(includedKinds.indexOf("memory")).toBeLessThan(includedKinds.indexOf("world_info"));
+    expect(plan.systemPrompt).toContain("记忆：主角怕水。");
+    expect(plan.systemPrompt.indexOf("记忆：主角怕水。")).toBeLessThan(
+      plan.systemPrompt.indexOf("世界书：雨夜书店。"),
+    );
+  });
+});

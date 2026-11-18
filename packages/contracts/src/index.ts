@@ -684,6 +684,46 @@ export const regexTestResponseSchema = z.object({
 });
 export type RegexTestResponse = z.infer<typeof regexTestResponseSchema>;
 
+export const memoryKindSchema = z.enum([
+  "manual_fact",
+  "event",
+  "summary",
+  "relationship",
+  "retrieval_hit",
+]);
+export type MemoryKindDto = z.infer<typeof memoryKindSchema>;
+
+export const memoryScopeSchema = z.enum(["conversation", "global"]);
+
+export const memoryItemDtoSchema = z.object({
+  id: z.string(),
+  kind: memoryKindSchema,
+  content: z.string(),
+  conversationId: z.string().nullable(),
+  scope: memoryScopeSchema,
+  locked: z.boolean(),
+  revision: z.number().int().positive(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type MemoryItemDto = z.infer<typeof memoryItemDtoSchema>;
+
+export const createMemoryRequestSchema = z
+  .object({
+    kind: memoryKindSchema,
+    content: z.string().min(1).max(100_000),
+    conversationId: z.uuid().optional(),
+    scope: memoryScopeSchema.optional(),
+    locked: z.boolean().optional(),
+  })
+  .strict();
+export type CreateMemoryRequest = z.infer<typeof createMemoryRequestSchema>;
+
+export const updateMemoryRequestSchema = createMemoryRequestSchema
+  .extend({ expectedRevision: z.number().int().positive() })
+  .strict();
+export type UpdateMemoryRequest = z.infer<typeof updateMemoryRequestSchema>;
+
 export const promptComponentDtoSchema = z.object({
   kind: z.enum([
     "platform_policy",
@@ -733,6 +773,8 @@ export const promptPreviewRequestSchema = z
     personaId: z.uuid().optional(),
     presetId: z.uuid().optional(),
     regexRuleIds: z.array(z.uuid()).max(50).optional(),
+    memoryIds: z.array(z.uuid()).max(50).optional(),
+    autoMemory: z.boolean().optional(),
     persona: z
       .object({
         name: z.string().min(1).max(120),
@@ -791,6 +833,21 @@ export const promptPreviewResponseSchema = z.object({
     skipped: z.array(regexSkippedDtoSchema),
     deferred: z.array(regexSkippedDtoSchema),
     transformedInput: z.string(),
+  }),
+  memory: z.object({
+    selected: z.array(
+      z.object({
+        id: z.string(),
+        kind: memoryKindSchema,
+        content: z.string(),
+        score: z.number(),
+        matchedTerms: z.array(z.string()),
+        reason: z.enum(["locked", "keyword", "recent"]),
+        estimatedTokens: z.number().int().nonnegative(),
+      }),
+    ),
+    skipped: z.array(z.object({ id: z.string(), reason: z.string() })),
+    totalEstimatedTokens: z.number().int().nonnegative(),
   }),
 });
 export type PromptPreviewResponse = z.infer<typeof promptPreviewResponseSchema>;

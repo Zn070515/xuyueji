@@ -11,6 +11,7 @@ import { HomePage } from "./pages/HomePage.js";
 import { ContactPage, PrivacyPage, RefundsPage, TermsPage } from "./pages/LegalPages.js";
 import { LoginPage } from "./pages/LoginPage.js";
 import { LorebooksPage } from "./pages/LorebooksPage.js";
+import { MemoriesPage } from "./pages/MemoriesPage.js";
 import { NotFoundPage } from "./pages/NotFoundPage.js";
 import { PersonasPage } from "./pages/PersonasPage.js";
 import { PlannedPage } from "./pages/PlannedPage.js";
@@ -81,7 +82,7 @@ export function App() {
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/lorebooks" element={<LorebooksPage />} />
             <Route path="/presets" element={<PresetsPage />} />
-            <Route path="/memories" element={<PlannedPage {...PLANNED_PAGES.memories} />} />
+            <Route path="/memories" element={<MemoriesPage />} />
             <Route path="/admin" element={<PlannedPage {...PLANNED_PAGES.admin} />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>

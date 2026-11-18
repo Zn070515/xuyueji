@@ -193,7 +193,12 @@ export function SiteFooter() {
             </li>
             <li>
               <Link className="hover:text-moon-300" to="/presets">
-                预设
+                预设与正则
+              </Link>
+            </li>
+            <li>
+              <Link className="hover:text-moon-300" to="/memories">
+                长期记忆
               </Link>
             </li>
             <li>
