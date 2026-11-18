@@ -162,6 +162,63 @@ describe("world info determinism", () => {
     expect(first.trace).toEqual(second.trace);
   });
 
+  it("activates regex-triggered entries through the safe engine", () => {
+    const result = run(
+      [
+        entry({
+          id: "regex",
+          matchMode: "regex",
+          regexPattern: "雨夜|铜灯",
+          regexFlags: "",
+          content: "雨夜书店",
+        }),
+        entry({
+          id: "regex-miss",
+          matchMode: "regex",
+          regexPattern: "雪天",
+          content: "雪天书单",
+        }),
+      ],
+      { userInput: "今晚是雨夜。" },
+    );
+    expect(result.activated.map((item) => item.entry.id)).toEqual(["regex"]);
+    expect(result.activated[0]?.matchedKeys).toEqual(["雨夜|铜灯"]);
+    expect(result.skipped).toContainEqual({ entryId: "regex-miss", reason: "no-keyword" });
+  });
+
+  it("still requires secondary keys for regex entries", () => {
+    const result = run(
+      [
+        entry({
+          id: "gated",
+          matchMode: "regex",
+          regexPattern: "雨夜",
+          secondaryKeys: ["书店"],
+          content: "雨夜书店",
+        }),
+      ],
+      { userInput: "雨夜的风很冷。" },
+    );
+    expect(result.activated).toHaveLength(0);
+  });
+
+  it("skips regex entries with an invalid pattern and reports a warning", () => {
+    const result = run(
+      [
+        entry({
+          id: "broken",
+          matchMode: "regex",
+          regexPattern: "(a+)+$",
+          content: "不该出现",
+        }),
+      ],
+      { userInput: "aaaa" },
+    );
+    expect(result.activated).toHaveLength(0);
+    expect(result.skipped).toContainEqual({ entryId: "broken", reason: "invalid-regex" });
+    expect(result.warnings.join(" ")).toMatch(/invalid regex/);
+  });
+
   it("orders activated entries by position then insertion order", () => {
     const result = run(
       [

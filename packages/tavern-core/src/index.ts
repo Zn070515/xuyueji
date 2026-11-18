@@ -19,6 +19,10 @@ export interface WorldInfoEntry {
   readonly content: string;
   readonly enabled: boolean;
   readonly constant: boolean;
+  /** Keyword matching (default) or a bounded regex from the safe subset. */
+  readonly matchMode?: "keyword" | "regex";
+  readonly regexPattern?: string;
+  readonly regexFlags?: string;
   readonly keys: readonly string[];
   readonly secondaryKeys: readonly string[];
   readonly caseSensitive: boolean;

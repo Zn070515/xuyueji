@@ -6,6 +6,7 @@ import {
   updateLorebookEntryRequestSchema,
   updateLorebookRequestSchema,
 } from "@xuyueji/contracts";
+import { compileSafeRegex } from "@xuyueji/tavern-core";
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 
@@ -24,6 +25,13 @@ import {
 } from "../repositories/lorebooks.js";
 
 const bookParamsSchema = z.object({ lorebookId: z.string().min(1).max(100) });
+
+/** Regex-triggered entries must compile before they are stored. */
+function assertEntryRule(entry: { matchMode: string; regexPattern: string; regexFlags: string }) {
+  if (entry.matchMode === "regex") {
+    compileSafeRegex(entry.regexPattern, entry.regexFlags);
+  }
+}
 const entryParamsSchema = z.object({
   lorebookId: z.string().min(1).max(100),
   entryId: z.string().min(1).max(100),
@@ -94,6 +102,7 @@ export function lorebookRoutes(options: {
         const session = requireSession(request);
         const { lorebookId } = bookParamsSchema.parse(request.params);
         const entry = lorebookEntryInputSchema.parse(request.body);
+        assertEntryRule(entry);
         const created = await createLoreEntry(db, {
           ownerUserId: session.userId,
           lorebookId,
@@ -112,6 +121,7 @@ export function lorebookRoutes(options: {
         const session = requireSession(request);
         const { lorebookId, entryId } = entryParamsSchema.parse(request.params);
         const body = updateLorebookEntryRequestSchema.parse(request.body);
+        assertEntryRule(body);
         return updateLoreEntry(db, {
           ownerUserId: session.userId,
           lorebookId,

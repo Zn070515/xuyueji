@@ -30,6 +30,9 @@ function asNumber(value: unknown, fallback: number): number {
 
 function normalizeRule(ruleJsonb: Record<string, unknown>): LorebookEntryDto["rule"] {
   return {
+    matchMode: ruleJsonb.matchMode === "regex" ? "regex" : "keyword",
+    regexPattern: typeof ruleJsonb.regexPattern === "string" ? ruleJsonb.regexPattern : "",
+    regexFlags: typeof ruleJsonb.regexFlags === "string" ? ruleJsonb.regexFlags : "",
     keys: asStringArray(ruleJsonb.keys),
     secondaryKeys: asStringArray(ruleJsonb.secondaryKeys),
     caseSensitive: asBoolean(ruleJsonb.caseSensitive, false),
@@ -50,6 +53,9 @@ function normalizeRule(ruleJsonb: Record<string, unknown>): LorebookEntryDto["ru
 
 function ruleJson(entry: LorebookEntryInput | LorebookEntryDto["rule"]): Record<string, unknown> {
   return {
+    matchMode: entry.matchMode ?? "keyword",
+    regexPattern: entry.regexPattern ?? "",
+    regexFlags: entry.regexFlags ?? "",
     keys: entry.keys,
     secondaryKeys: entry.secondaryKeys,
     caseSensitive: entry.caseSensitive,

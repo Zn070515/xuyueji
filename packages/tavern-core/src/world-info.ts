@@ -1,4 +1,5 @@
 import type { WorldInfoEntry } from "./index.js";
+import { SafeRegexError, testSafeRegex } from "./safe-regex.js";
 
 export interface WorldInfoContext {
   /** Oldest → newest message text. */
@@ -35,7 +36,8 @@ export interface SkippedWorldInfo {
     | "probability"
     | "already-activated"
     | "budget"
-    | "depth-limit";
+    | "depth-limit"
+    | "invalid-regex";
 }
 
 export interface WorldInfoTraceStep {
@@ -115,13 +117,47 @@ function textContainsKey(text: string, key: string, caseSensitive: boolean): boo
   return false;
 }
 
-function matchEntry(entry: WorldInfoEntry, texts: readonly string[]): string[] {
+interface EntryMatch {
+  readonly matchedKeys: string[];
+  readonly error?: "invalid-regex";
+}
+
+function matchEntry(entry: WorldInfoEntry, texts: readonly string[]): EntryMatch {
   const matched: string[] = [];
+
+  if (entry.matchMode === "regex") {
+    const pattern = entry.regexPattern ?? "";
+    const flags = entry.regexFlags ?? "";
+    let hit = false;
+    try {
+      hit = texts.some((text) => testSafeRegex(text, pattern, flags).matched);
+    } catch (cause) {
+      if (cause instanceof SafeRegexError) {
+        return { matchedKeys: [], error: "invalid-regex" };
+      }
+      throw cause;
+    }
+    if (!hit) {
+      return { matchedKeys: [] };
+    }
+    matched.push(pattern);
+    if (entry.secondaryKeys.length > 0) {
+      const secondaryMatches = entry.secondaryKeys.filter((key) =>
+        texts.some((text) => textContainsKey(text, key, entry.caseSensitive)),
+      );
+      if (secondaryMatches.length === 0) {
+        return { matchedKeys: [] };
+      }
+      matched.push(...secondaryMatches);
+    }
+    return { matchedKeys: matched };
+  }
+
   const primaryMatches = entry.keys.filter((key) =>
     texts.some((text) => textContainsKey(text, key, entry.caseSensitive)),
   );
   if (primaryMatches.length === 0) {
-    return [];
+    return { matchedKeys: [] };
   }
   matched.push(...primaryMatches);
 
@@ -130,12 +166,12 @@ function matchEntry(entry: WorldInfoEntry, texts: readonly string[]): string[] {
       texts.some((text) => textContainsKey(text, key, entry.caseSensitive)),
     );
     if (secondaryMatches.length === 0) {
-      return [];
+      return { matchedKeys: [] };
     }
     matched.push(...secondaryMatches);
   }
 
-  return matched;
+  return { matchedKeys: matched };
 }
 
 function scanTextsFor(entry: WorldInfoEntry, context: WorldInfoContext): string[] {
@@ -231,8 +267,13 @@ export function matchWorldInfo(
     if (!entry.enabled || entry.constant || visited.has(entry.id)) {
       continue;
     }
-    const matches = matchEntry(entry, scanTextsFor(entry, context));
-    if (matches.length === 0) {
+    const match = matchEntry(entry, scanTextsFor(entry, context));
+    if (match.error) {
+      recordSkip(entry, 0, match.error);
+      warnings.push(`World info entry ${entry.id} has an invalid regex and was skipped.`);
+      continue;
+    }
+    if (match.matchedKeys.length === 0) {
       recordSkip(entry, 0, "no-keyword");
       continue;
     }
@@ -243,7 +284,7 @@ export function matchWorldInfo(
         continue;
       }
     }
-    tryActivate(entry, 0, matches, "keyword");
+    tryActivate(entry, 0, match.matchedKeys, "keyword");
   }
 
   currentTexts = activated.filter((item) => item.entry.recursive).map((item) => item.entry.content);
@@ -254,8 +295,12 @@ export function matchWorldInfo(
       if (!entry.enabled || entry.constant) {
         continue;
       }
-      const matches = matchEntry(entry, currentTexts);
-      if (matches.length === 0) {
+      const match = matchEntry(entry, currentTexts);
+      if (match.error) {
+        recordSkip(entry, depth, match.error);
+        continue;
+      }
+      if (match.matchedKeys.length === 0) {
         continue;
       }
       if (visited.has(entry.id)) {
@@ -272,7 +317,7 @@ export function matchWorldInfo(
           continue;
         }
       }
-      if (tryActivate(entry, depth, matches, "recursive")) {
+      if (tryActivate(entry, depth, match.matchedKeys, "recursive")) {
         const activatedEntry = activated.at(-1);
         if (activatedEntry) {
           newlyActivated.push(activatedEntry);

@@ -398,6 +398,74 @@ describeWithDatabase("M2 regex rules and prompt pipeline", () => {
     expect(replay.json().plan.digest).toBe(body.plan.digest);
   });
 
+  it("triggers world info entries with a safe regex pattern", async () => {
+    const owner = await register(app);
+    const fixture = await createPreviewFixture(app, owner.cookie);
+
+    const book = await app.inject({
+      method: "POST",
+      url: "/api/lorebooks",
+      headers: { cookie: owner.cookie },
+      payload: { title: "正则触发世界书" },
+    });
+    expect(book.statusCode, book.body).toBe(201);
+    const bookId = (book.json() as { id: string }).id;
+
+    const created = await app.inject({
+      method: "POST",
+      url: `/api/lorebooks/${bookId}/entries`,
+      headers: { cookie: owner.cookie },
+      payload: {
+        content: "正则命中的设定：月光会显影旧字。",
+        matchMode: "regex",
+        regexPattern: "铜灯|月光",
+        regexFlags: "",
+        keys: [],
+        enabled: true,
+        sortKey: 1,
+      },
+    });
+    expect(created.statusCode, created.body).toBe(201);
+    const createdBody = created.json() as { rule: { matchMode: string; regexPattern: string } };
+    expect(createdBody.rule.matchMode).toBe("regex");
+    expect(createdBody.rule.regexPattern).toBe("铜灯|月光");
+
+    const preview = await app.inject({
+      method: "POST",
+      url: "/api/prompt/preview",
+      headers: { cookie: owner.cookie },
+      payload: {
+        conversationId: fixture.conversationId,
+        branchId: fixture.branchId,
+        characterId: fixture.characterId,
+        userInput: "月光落在柜台上。",
+        lorebookIds: [bookId],
+        maxOutputTokens: 200,
+        contextWindowTokens: 4096,
+        seed: 3,
+      },
+    });
+    expect(preview.statusCode, preview.body).toBe(200);
+    const body = preview.json();
+    expect(body.worldInfo.activated).toHaveLength(1);
+    expect(body.worldInfo.activated[0].content).toContain("月光会显影旧字");
+    expect(body.worldInfo.activated[0].matchedKeys).toEqual(["铜灯|月光"]);
+
+    const invalid = await app.inject({
+      method: "POST",
+      url: `/api/lorebooks/${bookId}/entries`,
+      headers: { cookie: owner.cookie },
+      payload: {
+        content: "不该保存",
+        matchMode: "regex",
+        regexPattern: "(a+)+$",
+        keys: [],
+      },
+    });
+    expect(invalid.statusCode).toBe(400);
+    expect(invalid.json().error.code).toBe("REGEX_INVALID");
+  });
+
   it("validates regex mutations and persists the replacement text", async () => {
     const owner = await register(app);
     const ruleId = randomUUID();

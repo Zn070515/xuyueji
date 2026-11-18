@@ -52,7 +52,7 @@
 | F05 | 角色卡字段/版本                    | 部分：CRUD/版本/CAS；完整字段 UI 未做完                                                                   |
 | F06 | V2/V3 JSON/PNG 导入导出            | 部分：JSON/PNG 导入、JSON 导出；PNG 导出/头像缺失                                                         |
 | F07 | Persona                            | 部分：CRUD/版本 CAS + Prompt 预览选择；尚未绑定到具体会话                                                 |
-| F08 | 世界书                             | 部分：CRUD/触发/递归/预算；正则未实现                                                                     |
+| F08 | 世界书                             | 部分：CRUD/关键词与安全正则触发/递归/预算；`at_depth` 渲染未做                                            |
 | F09 | Prompt Manager                     | 部分：编译器 + 预览 + Preset 段落 CRUD；作者注释/深度渲染/宏未做                                          |
 | F10 | 宏与变量                           | 未开始                                                                                                    |
 | F11 | 正则                               | 部分：安全子集引擎 + CRUD + 预设/用户输入阶段应用 + 试运行；环视/反向引用不支持，模型输出与展示阶段未接线 |
@@ -103,13 +103,13 @@
 
 - `pnpm typecheck`：PASS
 - `pnpm lint`：PASS（184 files）
-- `DATABASE_URL=... pnpm test`：**104 passed / 15 files**
-- `pnpm e2e`：**20 passed / 8 skipped**
+- `DATABASE_URL=... pnpm test`：**108 passed / 15 files**
+- `pnpm e2e`：**21 passed / 9 skipped**
 - 角色卡：8 条 compat 测试 + API 导入/导出 round-trip
-- 世界书：9 条（环、预算、词边界、scanDepth、确定性）
+- 世界书：12 条（环、预算、词边界、scanDepth、确定性、正则触发/门控/非法表达式）
 - 安全正则：21 条（子集语法、捕获替换、嵌套量词/环视/反向引用拒绝、步数与输入上限）
 - Prompt：7 条（顺序、预算、历史裁剪、digest、key 冲突）
-- 正则集成：5 条（CRUD/CAS/隔离、写入校验、试运行、两阶段应用、mutation）
+- 正则集成：6 条（CRUD/CAS/隔离、写入校验、试运行、两阶段应用、世界书正则触发、mutation）
 - M1 集成：11 条（认证、CAS、分页 2,500、同步、导出/恢复、Prompt 预览）
 
 ## 开放风险（按优先级）
