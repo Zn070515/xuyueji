@@ -51,7 +51,7 @@
 | F04 | 云保存/分页/同步/跨设备            | 部分：分页、游标、跨设备 E2E；无自动实时合并                  |
 | F05 | 角色卡字段/版本                    | 部分：CRUD/版本/CAS；完整字段 UI 未做完                       |
 | F06 | V2/V3 JSON/PNG 导入导出            | 部分：JSON/PNG 导入、JSON 导出；PNG 导出/头像缺失             |
-| F07 | Persona                            | 部分：schema、Prompt 预览请求可带 Persona；无 CRUD UI         |
+| F07 | Persona                            | 部分：CRUD/版本 CAS + Prompt 预览选择；尚未绑定到具体会话     |
 | F08 | 世界书                             | 部分：CRUD/触发/递归/预算；正则未实现                         |
 | F09 | Prompt Manager                     | 部分：编译器 + 云端聊天预览；预设 CRUD/排序 UI 未做           |
 | F10 | 宏与变量                           | 未开始                                                        |
@@ -103,8 +103,8 @@
 
 - `pnpm typecheck`：PASS
 - `pnpm lint`：PASS（162 files）
-- `DATABASE_URL=... pnpm test`：**75 passed / 13 files**
-- `pnpm e2e`：**16 passed / 4 skipped**
+- `DATABASE_URL=... pnpm test`：**77 passed / 13 files**
+- `pnpm e2e`：**18 passed / 6 skipped**
 - 角色卡：8 条 compat 测试 + API 导入/导出 round-trip
 - 世界书：9 条（环、预算、词边界、scanDepth、确定性）
 - Prompt：7 条（顺序、预算、历史裁剪、digest、key 冲突）

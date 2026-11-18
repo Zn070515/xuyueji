@@ -426,6 +426,62 @@ export const syncMutationResponseSchema = z.object({
 });
 export type SyncMutationResponse = z.infer<typeof syncMutationResponseSchema>;
 
+export const personaPayloadSchema = z
+  .object({
+    displayName: z.string().min(1).max(120),
+    description: z.string().max(50_000),
+  })
+  .strict();
+export type PersonaPayloadDto = z.infer<typeof personaPayloadSchema>;
+
+export const personaSummarySchema = z.object({
+  id: z.string(),
+  displayName: z.string(),
+  activeVersionId: z.string().nullable(),
+  revision: z.number().int().nonnegative(),
+  updatedAt: z.string(),
+});
+export type PersonaSummaryDto = z.infer<typeof personaSummarySchema>;
+
+export const personaVersionMetaSchema = z.object({
+  id: z.string(),
+  revision: z.number().int().positive(),
+  createdAt: z.string(),
+});
+
+export const personaDetailSchema = z.object({
+  persona: personaSummarySchema,
+  activeVersion: z
+    .object({
+      id: z.string(),
+      revision: z.number().int().positive(),
+      payload: personaPayloadSchema,
+      createdAt: z.string(),
+    })
+    .nullable(),
+  versions: z.array(personaVersionMetaSchema),
+});
+export type PersonaDetailDto = z.infer<typeof personaDetailSchema>;
+
+export const createPersonaRequestSchema = personaPayloadSchema;
+export type CreatePersonaRequest = z.infer<typeof createPersonaRequestSchema>;
+
+export const addPersonaVersionRequestSchema = z
+  .object({
+    expectedActiveVersionId: z.string().min(1).max(100),
+    payload: personaPayloadSchema,
+  })
+  .strict();
+export type AddPersonaVersionRequest = z.infer<typeof addPersonaVersionRequestSchema>;
+
+export const personaVersionResponseSchema = z.object({
+  personaId: z.string(),
+  activeVersionId: z.string(),
+  revision: z.number().int().positive(),
+  versionCount: z.number().int().positive(),
+});
+export type PersonaVersionResponse = z.infer<typeof personaVersionResponseSchema>;
+
 export const lorePositionSchema = z.enum([
   "before_char",
   "after_char",
@@ -554,6 +610,7 @@ export const promptPreviewRequestSchema = z
     characterId: z.uuid(),
     userInput: z.string().min(1).max(100_000),
     lorebookIds: z.array(z.uuid()).max(20).optional(),
+    personaId: z.uuid().optional(),
     persona: z
       .object({
         name: z.string().min(1).max(120),

@@ -4,6 +4,7 @@ import type {
   ConversationSummaryDto,
   LorebookSummaryDto,
   MessageDto,
+  PersonaSummaryDto,
   PromptPreviewResponse,
 } from "@xuyueji/contracts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -19,6 +20,7 @@ import {
 } from "../lib/conversations-api.js";
 import { ApiError } from "../lib/http.js";
 import { listLorebooks } from "../lib/lorebooks-api.js";
+import { listPersonas } from "../lib/personas-api.js";
 import { previewPrompt } from "../lib/prompt-api.js";
 import { DemoDataNote, GateBadge, PageHeader } from "./Primitives.js";
 
@@ -100,6 +102,8 @@ export function CloudChat() {
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [lorebooks, setLorebooks] = useState<LorebookSummaryDto[]>([]);
   const [selectedLorebookIds, setSelectedLorebookIds] = useState<string[]>([]);
+  const [personas, setPersonas] = useState<PersonaSummaryDto[]>([]);
+  const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(null);
   const [promptPreview, setPromptPreview] = useState<PromptPreviewResponse | null>(null);
   const [previewing, setPreviewing] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -194,6 +198,15 @@ export function CloudChat() {
       })
       .catch(() => {
         // World info is optional for the preview.
+      });
+    listPersonas()
+      .then((result) => {
+        if (active) {
+          setPersonas(result.personas);
+        }
+      })
+      .catch(() => {
+        // Persona is optional for the preview.
       });
     return () => {
       active = false;
@@ -339,6 +352,7 @@ export function CloudChat() {
         characterId: selectedCharacterId,
         userInput: input,
         ...(selectedLorebookIds.length > 0 ? { lorebookIds: selectedLorebookIds } : {}),
+        ...(selectedPersonaId ? { personaId: selectedPersonaId } : {}),
         maxOutputTokens: 800,
         contextWindowTokens: 8192,
         seed: 1,
@@ -559,6 +573,37 @@ export function CloudChat() {
                     </option>
                   ))}
                 </select>
+
+                <label htmlFor="prompt-persona" className="mt-3 block text-[11px] text-mist-400">
+                  Persona（可选）
+                </label>
+                <select
+                  id="prompt-persona"
+                  value={selectedPersonaId ?? ""}
+                  onChange={(event) => {
+                    setSelectedPersonaId(event.target.value || null);
+                    setPromptPreview(null);
+                  }}
+                  className="mt-1 min-h-10 w-full rounded-xl border hairline bg-night-950/60 px-2 py-1.5 text-xs text-paper-50"
+                >
+                  <option value="">不使用 Persona</option>
+                  {personas.map((persona) => (
+                    <option key={persona.id} value={persona.id}>
+                      {persona.displayName} · v{persona.revision}
+                    </option>
+                  ))}
+                </select>
+                {personas.length === 0 ? (
+                  <p className="mt-1 text-[10px] leading-5 text-mist-500">
+                    还没有 Persona。
+                    <Link
+                      className="ml-1 text-moon-300 underline underline-offset-4"
+                      to="/personas"
+                    >
+                      创建
+                    </Link>
+                  </p>
+                ) : null}
 
                 {lorebooks.length === 0 ? (
                   <p className="mt-2 text-[10px] leading-5 text-mist-500">

@@ -101,6 +101,47 @@ test("world info entry affects the prompt preview", async ({ page }, testInfo) =
   await expect(page.getByText("雨夜书店会亮起铜灯。")).toBeVisible();
 });
 
+test("persona is selectable in the prompt preview", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "Persona 流程只需在桌面项目跑一次");
+
+  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const email = `persona-${suffix}@example.com`;
+  const password = "correct horse battery staple";
+
+  await page.goto("/register");
+  await page.getByLabel("显示名称").fill("Persona 用户");
+  await page.getByLabel("邮箱").fill(email);
+  await page.getByLabel(/密码（至少 12 位）/).fill(password);
+  await page.getByLabel(/我确认已年满/).check();
+  await page.getByRole("button", { name: "创建账号" }).click();
+  await expect(page).toHaveURL(/\/settings$/);
+
+  await page.goto("/personas");
+  await expect(page.getByRole("heading", { name: "让角色知道你正在扮演谁。" })).toBeVisible();
+  await page.locator("#persona-name").fill("E2E Persona");
+  await page.locator("#persona-description").fill("冷静的旅人");
+  await page.getByRole("button", { name: "创建 Persona" }).click();
+  await expect(page.getByRole("heading", { name: "E2E Persona" })).toBeVisible();
+
+  await page.goto("/characters");
+  await page.locator("#character-name").fill("Persona 测试角色");
+  await page.locator("#character-description").fill("用于 Persona 预览");
+  await page.getByRole("button", { name: "创建并保存到云端" }).click();
+  await expect(page.getByRole("heading", { name: "Persona 测试角色" })).toBeVisible();
+
+  await page.goto("/chat");
+  await page.getByRole("button", { name: "新建云端会话" }).click();
+  await page.locator("#cloud-chat-input").fill("你好，旅人。");
+  await page.getByRole("button", { name: "发送到云端" }).click();
+  await expect(page.getByText("你好，旅人。")).toBeVisible();
+
+  await page.getByLabel("Persona（可选）").selectOption({ label: "E2E Persona · v1" });
+  await page.getByRole("button", { name: "生成 Prompt 预览" }).click();
+  await expect(page.getByText(/digest/)).toBeVisible();
+  await page.getByText("查看 systemPrompt").click();
+  await expect(page.getByText("用户人格：E2E Persona")).toBeVisible();
+});
+
 test("register, save a cloud character version and export", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "云端流程只需在桌面项目跑一次");
 

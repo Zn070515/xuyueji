@@ -187,6 +187,11 @@ export function SiteFooter() {
               </Link>
             </li>
             <li>
+              <Link className="hover:text-moon-300" to="/personas">
+                Persona
+              </Link>
+            </li>
+            <li>
               <Link className="hover:text-moon-300" to="/wallet">
                 积分与钱包
               </Link>

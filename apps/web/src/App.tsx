@@ -12,6 +12,7 @@ import { ContactPage, PrivacyPage, RefundsPage, TermsPage } from "./pages/LegalP
 import { LoginPage } from "./pages/LoginPage.js";
 import { LorebooksPage } from "./pages/LorebooksPage.js";
 import { NotFoundPage } from "./pages/NotFoundPage.js";
+import { PersonasPage } from "./pages/PersonasPage.js";
 import { PlannedPage } from "./pages/PlannedPage.js";
 import { RegisterPage } from "./pages/RegisterPage.js";
 import { SettingsPage } from "./pages/SettingsPage.js";
@@ -80,6 +81,7 @@ export function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/characters" element={<CharactersPage />} />
+            <Route path="/personas" element={<PersonasPage />} />
             <Route path="/wallet" element={<WalletPage />} />
             <Route path="/wallet/checkout" element={<CheckoutPage />} />
             <Route path="/login" element={<LoginPage />} />
