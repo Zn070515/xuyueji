@@ -31,6 +31,7 @@ export default defineConfig({
         DATABASE_URL:
           process.env.DATABASE_URL ?? "postgres://xuyueji:xuyueji_dev@127.0.0.1:5432/xuyueji",
         PUBLIC_SIGNUP_ENABLED: "true",
+        RATE_LIMIT_MAX: "10000",
         AUTH_SIGNUP_RATE_LIMIT_MAX: "1000",
         AUTH_LOGIN_RATE_LIMIT_MAX: "1000",
       },

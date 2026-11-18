@@ -10,6 +10,7 @@ import { HelpPage } from "./pages/HelpPage.js";
 import { HomePage } from "./pages/HomePage.js";
 import { ContactPage, PrivacyPage, RefundsPage, TermsPage } from "./pages/LegalPages.js";
 import { LoginPage } from "./pages/LoginPage.js";
+import { LorebooksPage } from "./pages/LorebooksPage.js";
 import { NotFoundPage } from "./pages/NotFoundPage.js";
 import { PlannedPage } from "./pages/PlannedPage.js";
 import { RegisterPage } from "./pages/RegisterPage.js";
@@ -26,20 +27,6 @@ function ScrollToTop() {
 }
 
 const PLANNED_PAGES = {
-  lorebooks: {
-    eyebrow: "世界书 / Lorebooks",
-    title: "让世界在需要时开口。",
-    description:
-      "常驻条目、主/次关键词、可选正则、扫描深度、概率、递归、优先级、预算、位置与有效范围。",
-    gate: "M2",
-    planned: [
-      "确定性关键词与正则触发",
-      "递归激活、环检测与深度/条目/字节限额",
-      "位置、优先级、插入深度与预算裁剪",
-      "每次命中的来源、理由与注入位置",
-      "世界书导入导出与测试样本",
-    ],
-  },
   presets: {
     eyebrow: "预设 / Presets",
     title: "把 Prompt 变成可解释的编排。",
@@ -103,7 +90,7 @@ export function App() {
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/refunds" element={<RefundsPage />} />
             <Route path="/contact" element={<ContactPage />} />
-            <Route path="/lorebooks" element={<PlannedPage {...PLANNED_PAGES.lorebooks} />} />
+            <Route path="/lorebooks" element={<LorebooksPage />} />
             <Route path="/presets" element={<PlannedPage {...PLANNED_PAGES.presets} />} />
             <Route path="/memories" element={<PlannedPage {...PLANNED_PAGES.memories} />} />
             <Route path="/admin" element={<PlannedPage {...PLANNED_PAGES.admin} />} />

@@ -88,6 +88,7 @@ jobs:
     env:
       DATABASE_URL: postgres://xuyueji:xuyueji_dev@127.0.0.1:5432/xuyueji
       PUBLIC_SIGNUP_ENABLED: "true"
+      RATE_LIMIT_MAX: "10000"
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
