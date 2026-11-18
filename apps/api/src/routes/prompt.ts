@@ -50,6 +50,7 @@ const ruleSchema = z.object({
   position: z
     .enum(["before_char", "after_char", "before_examples", "after_examples", "at_depth"])
     .optional(),
+  depth: z.number().int().min(0).max(50).optional(),
   scanDepth: z.number().int().min(0).max(50).optional(),
   recursive: z.boolean().optional(),
 });
@@ -84,7 +85,7 @@ function toWorldInfoEntry(row: typeof loreEntries.$inferSelect): WorldInfoEntry 
     probability: rule.probability ?? 1,
     insertionOrder: row.sortKey,
     position: rule.position ?? "after_char",
-    depth: 0,
+    depth: rule.depth ?? 0,
     scanDepth: rule.scanDepth ?? 4,
     recursive: rule.recursive ?? false,
   };
@@ -411,6 +412,7 @@ export function promptRoutes(options: {
           content: worldContent.get(item.entry.id) ?? item.entry.content,
           position: item.entry.position,
           insertionOrder: item.entry.insertionOrder,
+          depth: item.entry.depth,
         })),
         examples: Array.isArray(payload.exampleMessages)
           ? payload.exampleMessages

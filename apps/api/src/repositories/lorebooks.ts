@@ -46,6 +46,7 @@ function normalizeRule(ruleJsonb: Record<string, unknown>): LorebookEntryDto["ru
       ruleJsonb.position === "at_depth"
         ? ruleJsonb.position
         : "after_char",
+    depth: Math.max(0, Math.floor(asNumber(ruleJsonb.depth, 0))),
     scanDepth: Math.max(0, Math.floor(asNumber(ruleJsonb.scanDepth, 4))),
     recursive: asBoolean(ruleJsonb.recursive, false),
   };
@@ -62,6 +63,7 @@ function ruleJson(entry: LorebookEntryInput | LorebookEntryDto["rule"]): Record<
     constant: entry.constant,
     probability: entry.probability,
     position: entry.position,
+    depth: entry.depth,
     scanDepth: entry.scanDepth,
     recursive: entry.recursive,
   };

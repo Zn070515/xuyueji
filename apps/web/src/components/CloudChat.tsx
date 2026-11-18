@@ -9,6 +9,7 @@ import type {
   PromptPreviewResponse,
   RegexRuleDto,
 } from "@xuyueji/contracts";
+import { applySafeRegex } from "@xuyueji/tavern-core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -33,7 +34,31 @@ function formatTime(value: string): string {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString("zh-CN");
 }
 
-function CloudMessage({ message }: { message: MessageDto }) {
+/** Display-stage regex runs in the browser on already-stored text only. */
+function applyDisplayRules(content: string, rules: readonly RegexRuleDto[]): string {
+  let current = content;
+  for (const rule of rules) {
+    try {
+      current = applySafeRegex(current, {
+        pattern: rule.pattern,
+        flags: rule.flags,
+        replacement: rule.replacement,
+      }).output;
+    } catch {
+      // A stored rule outside the safe budget never breaks message rendering.
+      return current;
+    }
+  }
+  return current;
+}
+
+function CloudMessage({
+  message,
+  displayRules,
+}: {
+  message: MessageDto;
+  displayRules: readonly RegexRuleDto[];
+}) {
   if (message.tombstoneAt) {
     return (
       <div className="my-3 flex justify-center">
@@ -78,7 +103,7 @@ function CloudMessage({ message }: { message: MessageDto }) {
               : "rounded-tl-sm border hairline bg-night-800/70 text-paper-100",
           ].join(" ")}
         >
-          {message.content}
+          {applyDisplayRules(message.content, displayRules)}
         </div>
       </div>
     </div>
@@ -117,6 +142,11 @@ export function CloudChat() {
   const [previewing, setPreviewing] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const displayRules = useMemo(
+    () => regexRules.filter((rule) => rule.enabled && rule.stage === "display_only"),
+    [regexRules],
+  );
 
   const branch = useMemo(
     () => detail?.branches.find((candidate) => candidate.id === selectedBranchId) ?? null,
@@ -511,7 +541,9 @@ export function CloudChat() {
                 </p>
               </div>
             ) : (
-              messages.map((message) => <CloudMessage key={message.id} message={message} />)
+              messages.map((message) => (
+                <CloudMessage key={message.id} message={message} displayRules={displayRules} />
+              ))
             )}
           </div>
 
@@ -755,6 +787,11 @@ export function CloudChat() {
                   />
                   启用长期记忆检索（按当前输入）
                 </label>
+                {displayRules.length > 0 ? (
+                  <p className="mt-2 text-[10px] leading-5 text-mist-500">
+                    已启用 {displayRules.length} 条仅展示正则，作用于消息渲染。
+                  </p>
+                ) : null}
 
                 <button
                   type="button"

@@ -466,6 +466,59 @@ describeWithDatabase("M2 regex rules and prompt pipeline", () => {
     expect(invalid.json().error.code).toBe("REGEX_INVALID");
   });
 
+  it("injects at_depth world info into messages, not the system prompt", async () => {
+    const owner = await register(app);
+    const fixture = await createPreviewFixture(app, owner.cookie);
+
+    const book = await app.inject({
+      method: "POST",
+      url: "/api/lorebooks",
+      headers: { cookie: owner.cookie },
+      payload: { title: "深度世界书" },
+    });
+    const bookId = (book.json() as { id: string }).id;
+    const entry = await app.inject({
+      method: "POST",
+      url: `/api/lorebooks/${bookId}/entries`,
+      headers: { cookie: owner.cookie },
+      payload: {
+        content: "深度注入的设定：铜灯只在雨夜亮起。",
+        keys: ["铜灯"],
+        position: "at_depth",
+        depth: 1,
+        enabled: true,
+        sortKey: 1,
+      },
+    });
+    expect(entry.statusCode, entry.body).toBe(201);
+
+    const preview = await app.inject({
+      method: "POST",
+      url: "/api/prompt/preview",
+      headers: { cookie: owner.cookie },
+      payload: {
+        conversationId: fixture.conversationId,
+        branchId: fixture.branchId,
+        characterId: fixture.characterId,
+        userInput: "铜灯今天亮吗？",
+        lorebookIds: [bookId],
+        maxOutputTokens: 200,
+        contextWindowTokens: 4096,
+        seed: 6,
+      },
+    });
+    expect(preview.statusCode, preview.body).toBe(200);
+    const body = preview.json();
+    expect(body.plan.systemPrompt).not.toContain("深度注入的设定");
+    const injected = body.plan.messages.find((message: { content: string }) =>
+      message.content.includes("深度注入的设定"),
+    );
+    expect(injected).toBeTruthy();
+    expect(injected.content).toMatch(/^\[世界书设定：/);
+    expect(injected.role).toBe("user");
+    expect(body.plan.messages.at(-1)).toEqual({ role: "user", content: "铜灯今天亮吗？" });
+  });
+
   it("validates regex mutations and persists the replacement text", async () => {
     const owner = await register(app);
     const ruleId = randomUUID();

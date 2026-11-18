@@ -101,6 +101,38 @@ test("world info entry affects the prompt preview", async ({ page }, testInfo) =
   await expect(page.getByText("雨夜书店会亮起铜灯。")).toBeVisible();
 });
 
+test("display-only regex is applied when messages render", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "展示正则流程只需在桌面项目跑一次");
+
+  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const email = `display-${suffix}@example.com`;
+  const password = "correct horse battery staple";
+
+  await page.goto("/register");
+  await page.getByLabel("显示名称").fill("展示正则用户");
+  await page.getByLabel("邮箱").fill(email);
+  await page.getByLabel(/密码（至少 12 位）/).fill(password);
+  await page.getByLabel(/我确认已年满/).check();
+  await page.getByRole("button", { name: "创建账号" }).click();
+  await expect(page).toHaveURL(/\/settings$/);
+
+  await page.goto("/presets");
+  await page.getByRole("button", { name: "新建正则规则" }).click();
+  await page.locator("#regex-title").fill("E2E 展示正则");
+  await page.locator("#regex-pattern").fill("晚安");
+  await page.getByLabel("阶段").selectOption("display_only");
+  await page.locator("#regex-sample").fill("晚安。");
+  await page.getByRole("button", { name: "保存正则规则" }).click();
+  await expect(page.getByText("正则规则已创建。")).toBeVisible();
+
+  await page.goto("/chat");
+  await page.getByRole("button", { name: "新建云端会话" }).click();
+  await page.locator("#cloud-chat-input").fill("晚安。");
+  await page.getByRole("button", { name: "发送到云端" }).click();
+  await expect(page.getByText("已写入 PostgreSQL。")).toBeVisible();
+  await expect(page.getByText("晚安。")).toHaveCount(0);
+});
+
 test("world info entry can trigger on a safe regex", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "正则世界书流程只需在桌面项目跑一次");
 
